@@ -51,9 +51,9 @@
 
                 $RCSfile: EplDllkCal.h,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.6 $  $Date: 2008/11/13 17:13:09 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

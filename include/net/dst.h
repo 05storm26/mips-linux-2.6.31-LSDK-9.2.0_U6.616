@@ -83,9 +83,18 @@ struct dst_entry
 	 * (L1_CACHE_SIZE would be too much)
 	 */
 #ifdef CONFIG_64BIT
-	long			__pad_to_align_refcnt[2];
+#ifdef CONFIG_MAPPING
+	long		mapping;
+	long		__pad_to_align_refcnt[1];
 #else
-	long			__pad_to_align_refcnt[1];
+	long		__pad_to_align_refcnt[2];
+#endif
+#else
+#ifdef CONFIG_MAPPING
+	long		mapping;
+#else
+	long		__pad_to_align_refcnt[1];
+#endif
 #endif
 	/*
 	 * __refcnt wants to be on a different cache line from

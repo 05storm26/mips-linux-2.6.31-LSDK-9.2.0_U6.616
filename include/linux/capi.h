@@ -1,4 +1,4 @@
-/* $Id: capi.h,v 1.4.6.1 2001/09/23 22:25:05 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/capi.h#1 $
  * 
  * CAPI 2.0 Interface for Linux
  * 

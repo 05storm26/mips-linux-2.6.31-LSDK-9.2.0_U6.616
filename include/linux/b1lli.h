@@ -1,4 +1,4 @@
-/* $Id: b1lli.h,v 1.8.8.3 2001/09/23 22:25:05 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/b1lli.h#1 $
  *
  * ISDN lowlevel-module for AVM B1-card.
  *

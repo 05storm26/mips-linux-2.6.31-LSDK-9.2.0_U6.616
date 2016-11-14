@@ -40,10 +40,10 @@ static unsigned int sip_timeout __read_mostly = SIP_TIMEOUT;
 module_param(sip_timeout, uint, 0600);
 MODULE_PARM_DESC(sip_timeout, "timeout for the master SIP session");
 
-static int sip_direct_signalling __read_mostly = 1;
+static int sip_direct_signalling __read_mostly = 0;
 module_param(sip_direct_signalling, int, 0600);
 MODULE_PARM_DESC(sip_direct_signalling, "expect incoming calls from registrar "
-					"only (default 1)");
+					"only (default 0)");
 
 static int sip_direct_media __read_mostly = 1;
 module_param(sip_direct_media, int, 0600);
@@ -1096,7 +1096,7 @@ static int process_register_request(struct sk_buff *skb,
 			  saddr, &daddr, IPPROTO_UDP, NULL, &port);
 	exp->timeout.expires = sip_timeout * HZ;
 	exp->helper = nfct_help(ct)->helper;
-	exp->flags = NF_CT_EXPECT_PERMANENT | NF_CT_EXPECT_INACTIVE;
+	exp->flags = NF_CT_EXPECT_PERMANENT;
 
 	nf_nat_sip_expect = rcu_dereference(nf_nat_sip_expect_hook);
 	if (nf_nat_sip_expect && ct->status & IPS_NAT_MASK)
@@ -1177,6 +1177,8 @@ static int process_register_response(struct sk_buff *skb,
 		if (refresh_signalling_expectation(ct, &addr, port, c_expires))
 			return NF_ACCEPT;
 	}
+	/* if not found, just don't refresh timer, but let session go */
+	return NF_ACCEPT;
 
 flush:
 	flush_expectations(ct, false);

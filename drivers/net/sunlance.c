@@ -1,4 +1,4 @@
-/* $Id: sunlance.c,v 1.112 2002/01/15 06:48:55 davem Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/sunlance.c#1 $
  * lance.c: Linux/Sparc/Lance driver
  *
  *	Written 1995, 1996 by Miguel de Icaza

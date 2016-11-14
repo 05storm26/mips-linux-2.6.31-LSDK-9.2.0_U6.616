@@ -1,4 +1,4 @@
-/* $Id: tei.c,v 2.20.2.3 2004/01/13 14:31:26 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/tei.c#1 $
  *
  * Author       Karsten Keil
  *              based on the teles driver from Jan den Ouden
@@ -20,7 +20,7 @@
 #include <linux/init.h>
 #include <linux/random.h>
 
-const char *tei_revision = "$Revision: 2.20.2.3 $";
+const char *tei_revision = "$Revision: #1 $";
 
 #define ID_REQUEST	1
 #define ID_ASSIGNED	2

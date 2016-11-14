@@ -1,6 +1,6 @@
 /* drivers/char/ser_a2232.h */
 
-/* $Id: ser_a2232.h,v 0.4 2000/01/25 12:00:00 ehaase Exp $ */
+/* $Id: //depot/sw/branches/NewmaStaging/linux/kernels/mips-linux-2.6.31/drivers/char/ser_a2232.h#1 $ */
 
 /* Linux serial driver for the Amiga A2232 board */
 

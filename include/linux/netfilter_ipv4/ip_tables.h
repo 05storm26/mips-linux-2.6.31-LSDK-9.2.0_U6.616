@@ -34,6 +34,14 @@
 #define ipt_table xt_table
 #define ipt_get_revision xt_get_revision
 
+#ifdef CONFIG_ATHRS_HW_ACL
+
+typedef struct {
+    void    (*nf_parse_tables)        (void *entry0, unsigned int size, char *name);
+} athr_nf_acl_ops_t;
+
+extern athr_nf_acl_ops_t *athr_acl_sw_ops;
+#endif
 /* Yes, Virginia, you have to zero the padding. */
 struct ipt_ip {
 	/* Source and destination IP addr */
@@ -62,6 +70,7 @@ struct ipt_ip {
 #define IPT_F_FRAG		0x01	/* Set if rule is a fragment rule */
 #define IPT_F_GOTO		0x02	/* Set if jump is a goto */
 #define IPT_F_MASK		0x03	/* All possible flag bits mask. */
+#define IPT_F_NO_DEF_MATCH      0x80    /* Internal: no default match rules present */
 
 /* Values for "inv" field in struct ipt_ip. */
 #define IPT_INV_VIA_IN		0x01	/* Invert the sense of IN IFACE. */

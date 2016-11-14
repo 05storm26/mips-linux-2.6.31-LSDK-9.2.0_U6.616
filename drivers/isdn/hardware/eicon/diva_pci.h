@@ -1,4 +1,4 @@
-/* $Id: diva_pci.h,v 1.6 2003/01/04 15:29:45 schindler Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/diva_pci.h#1 $ */
 
 #ifndef __DIVA_PCI_INTERFACE_H__
 #define __DIVA_PCI_INTERFACE_H__

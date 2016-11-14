@@ -34,7 +34,7 @@ pdev_fixup_irq(struct pci_dev *dev,
 
 	pci_read_config_byte(dev, PCI_INTERRUPT_PIN, &pin);
 	/* Cope with illegal. */
-	if (pin > 4)
+	if (pin == 0 || pin > 4)
 		pin = 1;
 
 	if (pin != 0) {

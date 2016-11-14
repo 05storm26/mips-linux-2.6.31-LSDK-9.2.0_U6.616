@@ -51,9 +51,9 @@
 
                 $RCSfile: EplApiLinux.h,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.5 $  $Date: 2008/08/25 12:17:41 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

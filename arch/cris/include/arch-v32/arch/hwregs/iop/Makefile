@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2004/01/07 20:34:55 johana Exp $
+# $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/arch-v32/arch/hwregs/iop/Makefile#1 $
 # Makefile to generate or copy the latest register definitions
 # and related datastructures and helpermacros.
 # The offical place for these files is probably at:

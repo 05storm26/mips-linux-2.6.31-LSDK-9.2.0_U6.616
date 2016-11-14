@@ -1,4 +1,4 @@
-/* $Id: diva.c,v 1.21.4.1 2004/05/08 14:33:43 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/diva.c#1 $ */
 
 #define CARDTYPE_H_WANT_DATA            1
 #define CARDTYPE_H_WANT_IDI_DATA        0

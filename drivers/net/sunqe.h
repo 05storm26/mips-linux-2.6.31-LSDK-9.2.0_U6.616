@@ -1,4 +1,4 @@
-/* $Id: sunqe.h,v 1.13 2000/02/09 11:15:42 davem Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/sunqe.h#1 $
  * sunqe.h: Definitions for the Sun QuadEthernet driver.
  *
  * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)

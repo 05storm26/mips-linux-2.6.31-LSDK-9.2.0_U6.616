@@ -225,7 +225,7 @@ cpio_list=
 output="/dev/stdout"
 output_file=""
 is_cpio_compressed=
-compr="gzip -9 -f"
+compr="gzip -9 -f -"
 
 arg="$1"
 case "$arg" in
@@ -239,9 +239,9 @@ case "$arg" in
 		output_file="$1"
 		cpio_list="$(mktemp ${TMPDIR:-/tmp}/cpiolist.XXXXXX)"
 		output=${cpio_list}
-		echo "$output_file" | grep -q "\.gz$" && compr="gzip -9 -f"
-		echo "$output_file" | grep -q "\.bz2$" && compr="bzip2 -9 -f"
-		echo "$output_file" | grep -q "\.lzma$" && compr="lzma -9 -f"
+		echo "$output_file" | grep -q "\.gz$" && compr="gzip -9 -f -"
+		echo "$output_file" | grep -q "\.bz2$" && compr="bzip2 -9 -f -"
+		echo "$output_file" | grep -q "\.lzma$" && compr="lzma e -d20 -lc1 -lp2 -pb2 -eos -si -so"
 		echo "$output_file" | grep -q "\.cpio$" && compr="cat"
 		shift
 		;;
@@ -292,7 +292,7 @@ if [ ! -z ${output_file} ]; then
 	if [ "${is_cpio_compressed}" = "compressed" ]; then
 		cat ${cpio_tfile} > ${output_file}
 	else
-		(cat ${cpio_tfile} | ${compr}  - > ${output_file}) \
+		(cat ${cpio_tfile} | ${compr} > ${output_file}) \
 		|| (rm -f ${output_file} ; false)
 	fi
 	[ -z ${cpio_file} ] && rm ${cpio_tfile}

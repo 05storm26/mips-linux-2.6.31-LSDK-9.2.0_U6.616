@@ -72,9 +72,22 @@ enum spec2_op {
 enum spec3_op {
 	ext_op, dextm_op, dextu_op, dext_op,
 	ins_op, dinsm_op, dinsu_op, dins_op,
+    lxx_op = 0x0A, 
+    insv_op = 0x0C,
+    adduqb_op = 0x10, cmpueqb_op, absqsph_op, shllqb_op,
 	bshfl_op = 0x20,
 	dbshfl_op = 0x24,
+    extrwph_op = 0x38,
 	rdhwr_op = 0x3b
+};
+
+/*
+ * func field of lx opcode.
+ */
+enum lx_op {
+    lwx_op = 0,
+    lhx_op = 4,
+    lbux_op = 6
 };
 
 /*
@@ -218,6 +231,23 @@ struct r_format {	/* Register format */
 	unsigned int func : 6;
 };
 
+struct sp3_format {	/* special-3 format */
+	unsigned int opcode : 6;
+	unsigned int rs : 5;
+	unsigned int rt : 5;
+	unsigned int offset : 10;
+	unsigned int sp3_opcode : 6;
+};
+
+struct lx_format {	/* LX format */
+	unsigned int opcode : 6;
+	unsigned int base : 5;
+	unsigned int index : 5;
+	unsigned int rd: 5;
+	unsigned int lx_opcode : 5;
+	unsigned int sp3_opcode : 6;
+};
+
 struct p_format {	/* Performance counter format (R10000) */
 	unsigned int opcode : 6;
 	unsigned int rs : 5;
@@ -285,6 +315,23 @@ struct r_format {	/* Register format */
 	unsigned int opcode : 6;
 };
 
+struct sp3_format {	/* special-3 format */
+	unsigned int sp3_opcode : 6;
+	unsigned int offset : 10;
+	unsigned int rt : 5;
+	unsigned int rs : 5;
+	unsigned int opcode : 6;
+};
+
+struct lx_format {	/* LX format */
+	unsigned int sp3_opcode : 6;
+	unsigned int lx_opcode : 5;
+	unsigned int rd: 5;
+	unsigned int index : 5;
+	unsigned int base : 5;
+	unsigned int opcode : 6;
+};
+
 struct p_format {	/* Performance counter format (R10000) */
 	unsigned int func : 6;
 	unsigned int re : 5;
@@ -328,7 +375,9 @@ union mips_instruction {
 	struct c_format c_format;
 	struct r_format r_format;
 	struct f_format f_format;
-        struct ma_format ma_format;
+	struct ma_format ma_format;
+	struct sp3_format sp3_format;
+	struct lx_format lx_format;
 };
 
 /* HACHACHAHCAHC ...  */

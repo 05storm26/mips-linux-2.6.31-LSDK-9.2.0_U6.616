@@ -116,6 +116,12 @@
 #define gadget_is_imx(g)	0
 #endif
 
+#ifdef CONFIG_USB_GADGET_AR9130
+#define gadget_is_ar9130(g)     !strcmp("ar9130_udc", (g)->name)
+#else
+#define gadget_is_ar9130(g)     0
+#endif
+
 #ifdef CONFIG_USB_GADGET_FSL_USB2
 #define gadget_is_fsl_usb2(g)	!strcmp("fsl-usb2-udc", (g)->name)
 #else
@@ -167,6 +173,18 @@
 #define gadget_is_ci13xxx(g)	(!strcmp("ci13xxx_udc", (g)->name))
 #else
 #define gadget_is_ci13xxx(g)	0
+#endif
+
+#ifdef CONFIG_USB_GADGET_AR9130
+#define gadget_is_ar9130(g)     !strcmp("ar9130_udc", (g)->name)
+#else
+#define gadget_is_ar9130(g)     0
+#endif
+
+#ifdef CONFIG_USB_GADGET_ATH
+#define gadget_is_ath_usb(g)     !strcmp("ath_udc", (g)->name)
+#else
+#define gadget_is_ath_usb(g)     0
 #endif
 
 // CONFIG_USB_GADGET_SX2
@@ -239,6 +257,11 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x23;
 	else if (gadget_is_langwell(gadget))
 		return 0x24;
+        else if (gadget_is_ar9130(gadget))
+                return 0x25;
+        else if (gadget_is_ath_usb(gadget))
+                return 0x25; /* same as above */
+
 	return -ENOENT;
 }
 

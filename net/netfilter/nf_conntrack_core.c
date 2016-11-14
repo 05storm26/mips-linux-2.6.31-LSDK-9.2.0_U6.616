@@ -1,4 +1,4 @@
-/* Connection state tracking for netfilter.  This is separated from,
+ /* Connection state tracking for netfilter.  This is separated from,
    but required by, the NAT layer; it can also be used by an iptables
    extension. */
 
@@ -30,6 +30,7 @@
 #include <linux/socket.h>
 #include <linux/mm.h>
 #include <linux/rculist_nulls.h>
+#include <linux/ip.h>
 
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_l3proto.h>
@@ -44,6 +45,10 @@
 #include <net/netfilter/nf_nat_core.h>
 
 #define NF_CONNTRACK_VERSION	"0.5.0"
+
+#define print_tuple(x) \
+printk("%s:%d reply src:%d reply dst:%d org src:%d org dst:%d\n", __FILE__, __LINE__, \
+ 	   x->src.u.all, x->dst.u.all);
 
 int (*nfnetlink_parse_nat_setup_hook)(struct nf_conn *ct,
 				      enum nf_nat_manip_type manip,
@@ -67,6 +72,35 @@ static struct kmem_cache *nf_conntrack_cachep __read_mostly;
 static int nf_conntrack_hash_rnd_initted;
 static unsigned int nf_conntrack_hash_rnd;
 
+#ifdef CONFIG_ATHRS17_HNAT
+/* For ATHRS17 HNAT */
+int nf_athrs17_hnat;
+int nf_athrs17_hnat_wan_type;
+int nf_athrs17_hnat_ppp_id;
+int nf_athrs17_hnat_udp_thresh;
+unsigned int nf_athrs17_hnat_napt_no;
+unsigned char nf_athrs17_hnat_ppp_peer_ip[ATHRS17_PEER_IP_LEN];
+unsigned char nf_athrs17_hnat_ppp_peer_mac[ATHRS17_MAC_LEN];
+unsigned char nf_athrs17_hnat_wan_mac[ATHRS17_MAC_LEN];
+EXPORT_SYMBOL(nf_athrs17_hnat);
+EXPORT_SYMBOL(nf_athrs17_hnat_wan_type);
+EXPORT_SYMBOL(nf_athrs17_hnat_ppp_id);
+EXPORT_SYMBOL(nf_athrs17_hnat_ppp_peer_ip);
+EXPORT_SYMBOL(nf_athrs17_hnat_ppp_peer_mac);
+EXPORT_SYMBOL(nf_athrs17_hnat_wan_mac);
+EXPORT_SYMBOL(nf_athrs17_hnat_napt_no);
+EXPORT_SYMBOL(nf_athrs17_hnat_udp_thresh);
+#endif
+
+#ifdef CONFIG_ATHRS_HW_NAT
+athr_nf_nat_ops_t *athr_nat_sw_ops;
+EXPORT_SYMBOL_GPL(athr_nat_sw_ops);
+#endif
+#if defined(CONFIG_ATHRS_HW_NAT)
+uint32_t hash_conntrack(const struct nf_conntrack_tuple *tuple);
+EXPORT_SYMBOL(hash_conntrack);
+#endif
+
 static u_int32_t __hash_conntrack(const struct nf_conntrack_tuple *tuple,
 				  unsigned int size, unsigned int rnd)
 {
@@ -85,7 +119,11 @@ static u_int32_t __hash_conntrack(const struct nf_conntrack_tuple *tuple,
 	return ((u64)h * size) >> 32;
 }
 
+#if defined(CONFIG_ATHRS_HW_NAT)
+uint32_t hash_conntrack(const struct nf_conntrack_tuple *tuple)
+#else
 static inline u_int32_t hash_conntrack(const struct nf_conntrack_tuple *tuple)
+#endif
 {
 	return __hash_conntrack(tuple, nf_conntrack_htable_size,
 				nf_conntrack_hash_rnd);
@@ -207,6 +245,11 @@ destroy_conntrack(struct nf_conntrack *nfct)
 	}
 
 	NF_CT_STAT_INC(net, delete);
+	
+#ifdef CONFIG_ATHRS17_HNAT
+	/* clear flag */
+	atomic_set(&ct->in_hnat, 0);
+#endif
 	spin_unlock_bh(&nf_conntrack_lock);
 
 	if (ct->master)
@@ -235,6 +278,7 @@ static void death_by_event(unsigned long ul_conntrack)
 	struct nf_conn *ct = (void *)ul_conntrack;
 	struct net *net = nf_ct_net(ct);
 
+
 	if (nf_conntrack_event(IPCT_DESTROY, ct) < 0) {
 		/* bad luck, let's retry again */
 		ct->timeout.expires = jiffies +
@@ -244,6 +288,11 @@ static void death_by_event(unsigned long ul_conntrack)
 	}
 	/* we've got the event delivered, now it's dying */
 	set_bit(IPS_DYING_BIT, &ct->status);
+	
+#ifdef CONFIG_ATHRS17_HNAT
+	/* clear flag */
+	atomic_set(&ct->in_hnat, 0);
+#endif
 	spin_lock(&nf_conntrack_lock);
 	hlist_nulls_del(&ct->tuplehash[IP_CT_DIR_ORIGINAL].hnnode);
 	spin_unlock(&nf_conntrack_lock);
@@ -270,6 +319,22 @@ EXPORT_SYMBOL_GPL(nf_ct_insert_dying_list);
 static void death_by_timeout(unsigned long ul_conntrack)
 {
 	struct nf_conn *ct = (void *)ul_conntrack;
+
+#ifdef CONFIG_ATHRS17_HNAT
+	/* clear flag */
+	atomic_set(&ct->in_hnat, 0);
+#endif
+
+#ifdef CONFIG_ATHRS_HW_NAT
+        void (*athr_process_hwnat)(struct sk_buff *, struct nf_conn *,
+                                   enum ip_conntrack_info, u_int8_t);
+
+        if (athr_nat_sw_ops) {
+                athr_process_hwnat = rcu_dereference(athr_nat_sw_ops->nf_process_nat);
+                if (athr_process_hwnat)
+                        athr_process_hwnat(NULL, ct, 0, 0);
+        }
+#endif
 
 	if (!test_bit(IPS_DYING_BIT, &ct->status) &&
 	    unlikely(nf_conntrack_event(IPCT_DESTROY, ct) < 0)) {
@@ -416,12 +481,35 @@ __nf_conntrack_confirm(struct sk_buff *skb)
 	   not in the hash.  If there is, we lost race. */
 	hlist_nulls_for_each_entry(h, n, &net->ct.hash[hash], hnnode)
 		if (nf_ct_tuple_equal(&ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple,
-				      &h->tuple))
+				      &h->tuple)) {
+                        printk("\nDropping packet:%s:%d %d %d %d::%d %d %d %d %d\n",__func__,__LINE__, \
+                                ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u.all, \
+                                ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.l3num, \
+                                ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.dst.u.all, \
+                                ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.dst.protonum, \
+                                h->tuple.src.u.all, \
+                                h->tuple.src.l3num, \
+                                h->tuple.dst.u.all, \
+                                h->tuple.dst.protonum
+                                );
 			goto out;
+                }
 	hlist_nulls_for_each_entry(h, n, &net->ct.hash[repl_hash], hnnode)
 		if (nf_ct_tuple_equal(&ct->tuplehash[IP_CT_DIR_REPLY].tuple,
-				      &h->tuple))
+				      &h->tuple)) {
+
+                        printk("\nDropping packet:%s:%d %d %d %d :: %d %d %d %d %d\n",__func__,__LINE__, \
+                                ct->tuplehash[IP_CT_DIR_REPLY].tuple.src.u.all, \
+                                ct->tuplehash[IP_CT_DIR_REPLY].tuple.src.l3num, \
+                                ct->tuplehash[IP_CT_DIR_REPLY].tuple.dst.u.all, \
+                                ct->tuplehash[IP_CT_DIR_REPLY].tuple.dst.protonum, \
+                                h->tuple.src.u.all, \
+                                h->tuple.src.l3num, \
+                                h->tuple.dst.u.all, \
+                                h->tuple.dst.protonum
+                                );
 			goto out;
+               }
 
 	/* Remove from unconfirmed list */
 	hlist_nulls_del_rcu(&ct->tuplehash[IP_CT_DIR_ORIGINAL].hnnode);
@@ -435,11 +523,11 @@ __nf_conntrack_confirm(struct sk_buff *skb)
 	set_bit(IPS_CONFIRMED_BIT, &ct->status);
 
 	/* Since the lookup is lockless, hash insertion must be done after
-	 * starting the timer and setting the CONFIRMED bit. The RCU barriers
-	 * guarantee that no other CPU can find the conntrack before the above
-	 * stores are visible.
-	 */
-	__nf_conntrack_hash_insert(ct, hash, repl_hash);
+     * starting the timer and setting the CONFIRMED bit. The RCU barriers
+     * guarantee that no other CPU can find the conntrack before the above
+     * stores are visible.
+     */
+    __nf_conntrack_hash_insert(ct, hash, repl_hash);
 	NF_CT_STAT_INC(net, insert);
 	spin_unlock_bh(&nf_conntrack_lock);
 
@@ -468,12 +556,17 @@ nf_conntrack_tuple_taken(const struct nf_conntrack_tuple *tuple,
 	struct nf_conntrack_tuple_hash *h;
 	struct hlist_nulls_node *n;
 	unsigned int hash = hash_conntrack(tuple);
+#ifdef CONFIG_ATHRS_HW_NAT
+        int (*athr_tuple_taken)(const struct nf_conntrack_tuple *,
+                                const struct nf_conn *);
+#endif
 
 	/* Disable BHs the entire time since we need to disable them at
 	 * least once for the stats anyway.
 	 */
 	rcu_read_lock_bh();
 	hlist_nulls_for_each_entry_rcu(h, n, &net->ct.hash[hash], hnnode) {
+
 		if (nf_ct_tuplehash_to_ctrack(h) != ignored_conntrack &&
 		    nf_ct_tuple_equal(tuple, &h->tuple)) {
 			NF_CT_STAT_INC(net, found);
@@ -484,6 +577,13 @@ nf_conntrack_tuple_taken(const struct nf_conntrack_tuple *tuple,
 	}
 	rcu_read_unlock_bh();
 
+#ifdef CONFIG_ATHRS_HW_NAT
+        if (athr_nat_sw_ops) {
+                athr_tuple_taken = rcu_dereference(athr_nat_sw_ops->nf_tuple_taken);
+                if (athr_tuple_taken)
+                        return athr_tuple_taken(tuple, ignored_conntrack);
+        }
+#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_tuple_taken);
@@ -577,6 +677,7 @@ struct nf_conn *nf_conntrack_alloc(struct net *net,
 	 */
 	memset(&ct->tuplehash[IP_CT_DIR_MAX], 0,
 	       sizeof(*ct) - offsetof(struct nf_conn, tuplehash[IP_CT_DIR_MAX]));
+
 	spin_lock_init(&ct->lock);
 	ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple = *orig;
 	ct->tuplehash[IP_CT_DIR_ORIGINAL].hnnode.pprev = NULL;
@@ -587,7 +688,6 @@ struct nf_conn *nf_conntrack_alloc(struct net *net,
 #ifdef CONFIG_NET_NS
 	ct->ct_net = net;
 #endif
-
 	/*
 	 * changes to lookup keys must be done before setting refcnt to 1
 	 */
@@ -600,7 +700,6 @@ EXPORT_SYMBOL_GPL(nf_conntrack_alloc);
 void nf_conntrack_free(struct nf_conn *ct)
 {
 	struct net *net = nf_ct_net(ct);
-
 	nf_ct_ext_destroy(ct);
 	atomic_dec(&net->ct.count);
 	nf_ct_ext_free(ct);
@@ -612,28 +711,38 @@ EXPORT_SYMBOL_GPL(nf_conntrack_free);
    failed due to stress.  Otherwise it really is unclassifiable. */
 static struct nf_conntrack_tuple_hash *
 init_conntrack(struct net *net,
-	       const struct nf_conntrack_tuple *tuple,
+	       struct nf_conntrack_tuple *tuple,
 	       struct nf_conntrack_l3proto *l3proto,
 	       struct nf_conntrack_l4proto *l4proto,
 	       struct sk_buff *skb,
-	       unsigned int dataoff)
+	       unsigned int dataoff
+	       )
 {
 	struct nf_conn *ct;
 	struct nf_conn_help *help;
 	struct nf_conntrack_tuple repl_tuple;
 	struct nf_conntrack_expect *exp;
+#ifdef CONFIG_ATHRS_HW_NAT
+        void (*athr_get_wan_addr)(uint32_t *,uint8_t);
+	uint8_t index=0;
+#endif
 
 	if (!nf_ct_invert_tuple(&repl_tuple, tuple, l3proto, l4proto)) {
 		pr_debug("Can't invert tuple.\n");
 		return NULL;
 	}
-
+#ifdef CONFIG_ATHRS_HW_NAT
+        if ((skb->ath_hw_nat_fw_flags == 3) && athr_nat_sw_ops) {
+                athr_get_wan_addr = rcu_dereference(athr_nat_sw_ops->get_wan_ipaddr);
+                if (athr_get_wan_addr)
+                        athr_get_wan_addr(&tuple->dst.u3.ip,index);
+        }
+#endif
 	ct = nf_conntrack_alloc(net, tuple, &repl_tuple, GFP_ATOMIC);
 	if (IS_ERR(ct)) {
 		pr_debug("Can't allocate conntrack.\n");
 		return (struct nf_conntrack_tuple_hash *)ct;
 	}
-
 	if (!l4proto->new(ct, skb, dataoff)) {
 		nf_conntrack_free(ct);
 		pr_debug("init conntrack: can't track with proto module\n");
@@ -674,6 +783,33 @@ init_conntrack(struct net *net,
 	hlist_nulls_add_head_rcu(&ct->tuplehash[IP_CT_DIR_ORIGINAL].hnnode,
 		       &net->ct.unconfirmed);
 
+#ifdef CONFIG_ATHRS_HW_NAT
+	if(skb->ath_hw_nat_fw_flags == 3)
+		set_bit(IPS_ATHR_SW_NAT_SKIPPED_BIT, &ct->status);
+#endif
+
+#ifdef CONFIG_ATHRS17_HNAT
+#ifndef CONFIG_ATHRS17_WIFI_HNAT
+	if(skb->athrs17_hnat_flags == 1)
+	{
+		/*
+		 * 0-15 bits, means it belong to hnat
+		 * 16-23 bits, means it belong to wireless
+		 * 24-31 bits, means the pkt is udp and the checksum is zero
+		 * if it from wireless, set the mark(16-23 bits)
+		 * it will init once, so no need to read the flag at first
+		 */
+		atomic_set(&ct->in_hnat, 0x10000);
+	}
+	else
+	{
+		atomic_set(&ct->in_hnat, 0x0);
+	}
+#else
+	atomic_set(&ct->in_hnat, 0x0);
+#endif
+#endif
+
 	spin_unlock_bh(&nf_conntrack_lock);
 
 	if (exp) {
@@ -698,8 +834,12 @@ resolve_normal_ct(struct net *net,
 		  enum ip_conntrack_info *ctinfo)
 {
 	struct nf_conntrack_tuple tuple;
-	struct nf_conntrack_tuple_hash *h;
-	struct nf_conn *ct;
+	struct nf_conntrack_tuple_hash *h = NULL;
+	struct nf_conn *ct = NULL;
+#ifdef CONFIG_ATHRS_HW_NAT
+        struct nf_conn *(*athr_find_get)(struct net *, struct nf_conntrack_tuple *,
+                                         __u32, struct nf_conntrack_tuple_hash **);
+#endif
 
 	if (!nf_ct_get_tuple(skb, skb_network_offset(skb),
 			     dataoff, l3num, protonum, &tuple, l3proto,
@@ -707,6 +847,21 @@ resolve_normal_ct(struct net *net,
 		pr_debug("resolve_normal_ct: Can't get tuple\n");
 		return NULL;
 	}
+
+#ifdef CONFIG_ATHRS_HW_NAT
+        /*
+         * for ingress, change the dest ip addr to wan router ip addr
+         * so as to make conntrack to find the match. Should be called only 
+         * for DNAT */
+        if (athr_nat_sw_ops) {
+                athr_find_get = rcu_dereference(athr_nat_sw_ops->nf_find_get);
+                if (athr_find_get) {
+                        ct = athr_find_get(net, &tuple, skb->ath_hw_nat_fw_flags, &h);
+                        if (ct)
+                                goto out;
+                }
+        }
+#endif
 
 	/* look for tuple match */
 	h = nf_conntrack_find_get(net, &tuple);
@@ -718,7 +873,9 @@ resolve_normal_ct(struct net *net,
 			return (void *)h;
 	}
 	ct = nf_ct_tuplehash_to_ctrack(h);
-
+#ifdef CONFIG_ATHRS_HW_NAT
+out:
+#endif
 	/* It exists; we have (non-exclusive) reference. */
 	if (NF_CT_DIRECTION(h) == IP_CT_DIR_REPLY) {
 		*ctinfo = IP_CT_ESTABLISHED + IP_CT_IS_REPLY;
@@ -744,6 +901,24 @@ resolve_normal_ct(struct net *net,
 	return ct;
 }
 
+#ifdef CONFIG_ATH_HWCS
+/* Setup checksum engine to start computation */
+inline __wsum
+ath_hwcs_skb_checksum(struct sk_buff *skb, int offset, int len)
+{
+	extern __sum16 ath_hwcs_start(void *buf, int len);
+
+	int start = skb_headlen(skb);
+	int copy = start - offset;
+
+	if (copy > 0) {
+        	ath_hwcs_start(skb->data + offset, copy);
+	}
+
+	return 0;
+}
+#endif /* CONFIG_ATH_HWCS */
+
 unsigned int
 nf_conntrack_in(struct net *net, u_int8_t pf, unsigned int hooknum,
 		struct sk_buff *skb)
@@ -756,6 +931,10 @@ nf_conntrack_in(struct net *net, u_int8_t pf, unsigned int hooknum,
 	u_int8_t protonum;
 	int set_reply = 0;
 	int ret;
+#ifdef CONFIG_ATHRS_HW_NAT
+        void (*athr_process_hwnat)(struct sk_buff *, struct nf_conn *,
+                                   enum ip_conntrack_info, u_int8_t);
+#endif
 
 	/* Previously seen (loopback or untracked)?  Ignore. */
 	if (skb->nfct) {
@@ -779,7 +958,18 @@ nf_conntrack_in(struct net *net, u_int8_t pf, unsigned int hooknum,
 	/* It may be an special packet, error, unclean...
 	 * inverse of the return code tells to the netfilter
 	 * core what to do with the packet. */
-	if (l4proto->error != NULL) {
+
+#ifdef CONFIG_ATH_HWCS
+        if (hooknum == NF_INET_PRE_ROUTING && l4proto->error != NULL) {
+		ath_hwcs_skb_checksum(skb, dataoff - 0x14, skb->len);
+	}
+#else
+#ifdef CONFIG_ATHRS_HW_NAT
+        if ((protonum == IPPROTO_ICMP) && (l4proto->error != NULL))
+#else
+        if (l4proto->error != NULL)
+#endif
+	{
 		ret = l4proto->error(net, skb, dataoff, &ctinfo, pf, hooknum);
 		if (ret <= 0) {
 			NF_CT_STAT_INC_ATOMIC(net, error);
@@ -787,13 +977,16 @@ nf_conntrack_in(struct net *net, u_int8_t pf, unsigned int hooknum,
 			return -ret;
 		}
 	}
+#endif /* CONFIG_ATH_HWCS */
 
 	ct = resolve_normal_ct(net, skb, dataoff, pf, protonum,
 			       l3proto, l4proto, &set_reply, &ctinfo);
 	if (!ct) {
 		/* Not valid part of a connection */
 		NF_CT_STAT_INC_ATOMIC(net, invalid);
-		return NF_ACCEPT;
+		
+		/* Modify by ZJIN 101119, if accept, it'll result in NO-NAT-PASS, but We are a NAT Router */
+		return NF_DROP;/*return NF_ACCEPT;*/
 	}
 
 	if (IS_ERR(ct)) {
@@ -820,6 +1013,29 @@ nf_conntrack_in(struct net *net, u_int8_t pf, unsigned int hooknum,
 	if (set_reply && !test_and_set_bit(IPS_SEEN_REPLY_BIT, &ct->status))
 		nf_conntrack_event_cache(IPCT_STATUS, ct);
 
+#ifdef CONFIG_ATH_HWCS
+#ifdef CONFIG_ATHRS_HW_NAT
+        if ((protonum == IPPROTO_ICMP) && (l4proto->error != NULL))
+#else
+        if (l4proto->error != NULL)
+#endif
+	{
+		ret = l4proto->error(net, skb, dataoff, &ctinfo, pf, hooknum);
+		if (ret <= 0) {
+			NF_CT_STAT_INC_ATOMIC(net, error);
+			NF_CT_STAT_INC_ATOMIC(net, invalid);
+			return -ret;
+		}
+	}
+#endif
+
+#ifdef CONFIG_ATHRS_HW_NAT
+        if (athr_nat_sw_ops) {
+                athr_process_hwnat = rcu_dereference(athr_nat_sw_ops->nf_process_nat);
+                if (athr_process_hwnat)
+                        athr_process_hwnat(skb, ct, ctinfo, protonum);
+        }
+#endif
 	return ret;
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_in);
@@ -1033,11 +1249,28 @@ void nf_ct_iterate_cleanup(struct net *net,
 {
 	struct nf_conn *ct;
 	unsigned int bucket = 0;
-
+	
 	while ((ct = get_next_corpse(net, iter, data, &bucket)) != NULL) {
 		/* Time to push up daises... */
 		if (del_timer(&ct->timeout))
 			death_by_timeout((unsigned long)ct);
+		else
+		{
+#ifdef CONFIG_ATHRS17_HNAT
+			/*
+			 * when enable hnat, it will add nat conntrack to hnat engine
+			 * and del the timer of connntrack. It will make del_timer return 0
+			 * so it will enter dead cycle
+			 * 0-15 bits, means it belong to hnat
+			 * 16-23 bits, means it belong to wireless
+			 * 24-31 bits, means the pkt is udp and the checksum is zero
+			 */
+			if (atomic_read(&ct->in_hnat) & 0xffff)
+			{
+				death_by_timeout((unsigned long)ct);
+			}
+#endif
+		}
 		/* ... else the timer will get him soon. */
 
 		nf_ct_put(ct);
@@ -1089,14 +1322,14 @@ void nf_conntrack_flush_report(struct net *net, u32 pid, int report)
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_flush_report);
 
-static void nf_ct_release_dying_list(struct net *net)
+static void nf_ct_release_dying_list(void)
 {
 	struct nf_conntrack_tuple_hash *h;
 	struct nf_conn *ct;
 	struct hlist_nulls_node *n;
 
 	spin_lock_bh(&nf_conntrack_lock);
-	hlist_nulls_for_each_entry(h, n, &net->ct.dying, hnnode) {
+	hlist_nulls_for_each_entry(h, n, &init_net.ct.dying, hnnode) {
 		ct = nf_ct_tuplehash_to_ctrack(h);
 		/* never fails to remove them, no listeners at this point */
 		nf_ct_kill(ct);
@@ -1115,7 +1348,7 @@ static void nf_conntrack_cleanup_net(struct net *net)
 {
  i_see_dead_people:
 	nf_ct_iterate_cleanup(net, kill_all, NULL);
-	nf_ct_release_dying_list(net);
+	nf_ct_release_dying_list();
 	if (atomic_read(&net->ct.count) != 0) {
 		schedule();
 		goto i_see_dead_people;
@@ -1245,9 +1478,9 @@ static int nf_conntrack_init_init_net(void)
 	 * machine has 512 buckets. >= 1GB machines have 16384 buckets. */
 	if (!nf_conntrack_htable_size) {
 		nf_conntrack_htable_size
-			= (((totalram_pages << PAGE_SHIFT) / 16384)
+			= (((num_physpages << PAGE_SHIFT) / 16384)
 			   / sizeof(struct hlist_head));
-		if (totalram_pages > (1024 * 1024 * 1024 / PAGE_SIZE))
+		if (num_physpages > (1024 * 1024 * 1024 / PAGE_SIZE))
 			nf_conntrack_htable_size = 16384;
 		if (nf_conntrack_htable_size < 32)
 			nf_conntrack_htable_size = 32;
@@ -1259,6 +1492,9 @@ static int nf_conntrack_init_init_net(void)
 		max_factor = 4;
 	}
 	nf_conntrack_max = max_factor * nf_conntrack_htable_size;
+	
+	/* change the max conntrack to 5K *//*add to 8K, Bug 24750*/
+	nf_conntrack_max = (8 * 1024);
 
 	printk("nf_conntrack version %s (%u buckets, %d max)\n",
 	       NF_CONNTRACK_VERSION, nf_conntrack_htable_size,
@@ -1350,11 +1586,6 @@ err_stat:
 	return ret;
 }
 
-s16 (*nf_ct_nat_offset)(const struct nf_conn *ct,
-			enum ip_conntrack_dir dir,
-			u32 seq);
-EXPORT_SYMBOL_GPL(nf_ct_nat_offset);
-
 int nf_conntrack_init(struct net *net)
 {
 	int ret;
@@ -1372,9 +1603,6 @@ int nf_conntrack_init(struct net *net)
 		/* For use by REJECT target */
 		rcu_assign_pointer(ip_ct_attach, nf_conntrack_attach);
 		rcu_assign_pointer(nf_ct_destroy, destroy_conntrack);
-
-		/* Howto get NAT offsets */
-		rcu_assign_pointer(nf_ct_nat_offset, NULL);
 	}
 	return 0;
 

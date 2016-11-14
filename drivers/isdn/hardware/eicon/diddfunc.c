@@ -1,4 +1,4 @@
-/* $Id: diddfunc.c,v 1.14.6.2 2004/08/28 20:03:53 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/diddfunc.c#1 $
  *
  * DIDD Interface module for Eicon active cards.
  * 

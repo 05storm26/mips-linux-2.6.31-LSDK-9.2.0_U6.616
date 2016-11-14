@@ -113,6 +113,7 @@ static int count_them(struct xt_connlimit_data *data,
 	bool addit = true;
 	int matches = 0;
 
+
 	if (family == NFPROTO_IPV6)
 		hash = &data->iphash[connlimit_iphash6(addr, mask)];
 	else

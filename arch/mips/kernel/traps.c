@@ -367,7 +367,9 @@ void __noreturn die(const char * str, const struct pt_regs * regs)
 	mips_mt_regdump(dvpret);
 #endif /* CONFIG_MIPS_MT_SMTC */
 	printk("%s[#%d]:\n", str, ++die_counter);
+#ifndef        CONFIG_MAPPING
 	show_registers(regs);
+#endif
 	add_taint(TAINT_DIE);
 	spin_unlock_irq(&die_lock);
 

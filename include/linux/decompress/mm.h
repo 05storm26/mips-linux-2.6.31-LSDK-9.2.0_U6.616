@@ -53,8 +53,6 @@ static void free(void *where)
 
 #define set_error_fn(x)
 
-#define INIT
-
 #else /* STATIC */
 
 /* Code active when compiled standalone for use when loading ramdisk: */
@@ -77,7 +75,6 @@ static void free(void *where)
 static void(*error)(char *m);
 #define set_error_fn(x) error = x;
 
-#define INIT __init
 #define STATIC
 
 #include <linux/init.h>

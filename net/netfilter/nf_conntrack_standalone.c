@@ -30,6 +30,7 @@
 MODULE_LICENSE("GPL");
 
 #ifdef CONFIG_PROC_FS
+
 int
 print_tuple(struct seq_file *s, const struct nf_conntrack_tuple *tuple,
             const struct nf_conntrack_l3proto *l3proto,
@@ -390,6 +391,72 @@ static ctl_table nf_ct_sysctl_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
+#ifdef CONFIG_ATHRS17_HNAT
+	{ /* For S17 HNAT */
+		.ctl_name	= NET_NF_ATHRS17_HNAT,
+		.procname	= "nf_athrs17_hnat",
+		.data		= &nf_athrs17_hnat,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_WAN_TYPE,
+		.procname	= "nf_athrs17_hnat_wan_type",
+		.data		= &nf_athrs17_hnat_wan_type,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_PPP_ID,
+		.procname	= "nf_athrs17_hnat_ppp_id",
+		.data		= &nf_athrs17_hnat_ppp_id,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_PPP_PEER_IP,
+		.procname	= "nf_athrs17_hnat_ppp_peer_ip",
+		.data		= &nf_athrs17_hnat_ppp_peer_ip,
+		.maxlen		= ATHRS17_PEER_IP_LEN,
+		.mode		= 0644,
+		.proc_handler	= proc_dostring
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_PPP_PEER_MAC,
+		.procname	= "nf_athrs17_hnat_ppp_peer_mac",
+		.data		= &nf_athrs17_hnat_ppp_peer_mac,
+		.maxlen		= ATHRS17_MAC_LEN,
+		.mode		= 0644,
+		.proc_handler	= proc_dostring
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_WAN_MAC,
+		.procname	= "nf_athrs17_hnat_wan_mac",
+		.data		= &nf_athrs17_hnat_wan_mac,
+		.maxlen		= ATHRS17_MAC_LEN,
+		.mode		= 0644,
+		.proc_handler	= proc_dostring
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_NAPT_NO,
+		.procname	= "nf_athrs17_hnat_napt_no",
+		.data		= &nf_athrs17_hnat_napt_no,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec
+	},
+	{
+		.ctl_name	= NET_NF_ATHRS17_HNAT_UDP_THRESH,
+		.procname	= "nf_athrs17_hnat_udp_thresh",
+		.data		= &nf_athrs17_hnat_udp_thresh,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec
+	},
+#endif
 	{ .ctl_name = 0 }
 };
 
@@ -480,8 +547,10 @@ static int nf_conntrack_net_init(struct net *net)
 	ret = nf_conntrack_standalone_init_proc(net);
 	if (ret < 0)
 		goto out_proc;
+
 	net->ct.sysctl_checksum = 1;
 	net->ct.sysctl_log_invalid = 0;
+
 	ret = nf_conntrack_standalone_init_sysctl(net);
 	if (ret < 0)
 		goto out_sysctl;

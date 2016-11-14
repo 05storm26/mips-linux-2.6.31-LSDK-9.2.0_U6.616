@@ -244,6 +244,14 @@ void neigh_changeaddr(struct neigh_table *tbl, struct net_device *dev)
 }
 EXPORT_SYMBOL(neigh_changeaddr);
 
+void neigh_flush_with_dev(struct neigh_table *tbl, struct net_device *dev)
+{
+	write_lock_bh(&tbl->lock);
+	neigh_flush_dev(tbl, dev);
+	write_unlock_bh(&tbl->lock);
+}
+EXPORT_SYMBOL(neigh_flush_with_dev);
+
 int neigh_ifdown(struct neigh_table *tbl, struct net_device *dev)
 {
 	write_lock_bh(&tbl->lock);

@@ -11,6 +11,47 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 
+#define LINUX_TAG_OFFSET		0x20000
+
+#define TAG_LEN         512
+#define SIG_LEN         24
+#define SIG_LEN_2       12   // Original second SIG = 20 is now devided into 14 for SIG_LEN_2 and 6 for CHIP_ID
+#define CHIP_ID_LEN		8	
+#define TOKEN_LEN       20
+#define BOARD_ID_LEN    16// TAG for downloadable image (kernel plus file system)// integer in the structure is stored in Network-Byte order (BIG-endian)
+
+
+typedef struct _LINUX_FILE_TAG
+{	
+	unsigned long tagVersion;    
+	char 		  signiture_1[SIG_LEN];         // text line for company info	
+	char 		  signiture_2[SIG_LEN_2];       // additional info (can be version number)    
+	char 		  chipId[CHIP_ID_LEN];			// chip id     
+	char 		  boardId[BOARD_ID_LEN];        // board id    
+	unsigned long productId;					// product id    
+	unsigned long productVer;					// product version    
+	unsigned long reserved1;					// reserved for future
+	
+	unsigned char imageValidationToken[TOKEN_LEN];// image validation token - md5 checksum
+	unsigned char kernelValidationToken[TOKEN_LEN];	// kernel+tag validation token - md5 checksum
+	
+	unsigned long kernelTextAddr;				// text section address of kernel	
+	unsigned long kernelEntryPoint;				// entry point address of kernel		
+	
+	unsigned long totalImageLen;				// the sum of kernelLen+rootfsLen+tagLen
+	
+	unsigned long kernelAddress;				// starting address (offset from the beginning of FILE_TAG) of kernel image	
+	unsigned long kernelLen;					// length of kernel image
+	
+	unsigned long rootfsAddress;				// starting address (offset) of filesystem image	
+	unsigned long rootfsLen;					// length of filesystem image
+	
+	unsigned long bootloaderAddress;			// starting address (offset) of boot loader image	
+	unsigned long bootloaderLen;				// length of boot loader image
+	
+} LINUX_FILE_TAG;
+
+
 struct fis_image_desc {
     unsigned char name[16];      // Null terminated name
     uint32_t	  flash_base;    // Address within FLASH of image
@@ -22,6 +63,52 @@ struct fis_image_desc {
     uint32_t	  desc_cksum;    // Checksum over image descriptor
     uint32_t	  file_cksum;    // Checksum over image data
 };
+
+/********add by zhangwu 24May07***************/
+struct fis_image_desc flash_sectors[] = {
+	{
+		"boot",//name
+		0x0,	 //flash_base
+		0x0,	 //mem_base
+		0x20000, //size 
+		0x0,	//entry_point
+	},
+	{
+		"kernel",
+		0x20000,
+		0x80060000,
+		0x100000,
+		0x8025c000,
+		0x200000,
+	},
+	{
+		"rootfs",
+		0x120000,	//0x140000,
+		0x80400000,
+		0x6C0000,	//0x2a0000,
+		0x0,
+	},
+
+	{
+		"config",
+		0x3e0000,
+		0x80800000,
+		0x20000,
+		0x0,
+	},
+	{
+		"art",
+		0x3e0000,
+		0x80800000,
+		0x20000,
+		0x0,
+	},
+	{
+		0xff,
+	}
+};
+
+
 
 struct fis_list {
 	struct fis_image_desc *img;
@@ -57,6 +144,7 @@ static int parse_redboot_partitions(struct mtd_info *master,
 	static char nullstring[] = "unallocated";
 #endif
 
+#if 0/**********del by zhangwu 24May07*************/
 	if ( directory < 0 ) {
 		offset = master->size + directory * master->erasesize;
 		while (master->block_isbad && 
@@ -95,8 +183,37 @@ static int parse_redboot_partitions(struct mtd_info *master,
 		ret = -EIO;
 		goto out;
 	}
+#endif
+	LINUX_FILE_TAG tag;
+	/* Read mtd partion from flash tag, add by lsz 30Nov07 */
+	ret = master->read(master, LINUX_TAG_OFFSET, sizeof(tag), &retlen, (void *)&tag);
+	for (i = 0; i < sizeof(flash_sectors)/sizeof(struct fis_image_desc); i ++)
+	{
+		if (strcmp(flash_sectors[i].name, "rootfs") == 0)
+		{
+			flash_sectors[i].flash_base = LINUX_TAG_OFFSET + tag.rootfsAddress;
+			flash_sectors[i].size = tag.rootfsLen;
+		}
+		else if (strcmp(flash_sectors[i].name, "config") == 0)
+		{
+			flash_sectors[i].flash_base = LINUX_TAG_OFFSET + tag.totalImageLen;
+			flash_sectors[i].size = 0x10000;	/* config size */
+		}
+		else if (strcmp(flash_sectors[i].name, "art") == 0)
+		{
+			/* art is the last sector, flash size is 8MB aligned -- lsz, 081211 */
+			flash_sectors[i].flash_base = ((tag.totalImageLen + 0x7FFFFF) & 0xFFC00000)-0x10000;
+			flash_sectors[i].size = 0x10000;	/* config size */
+		}
+	}
+	/************add by zhangwu 24May07********************/
+	buf = flash_sectors;
+	printk(KERN_INFO "Searching for RedBoot partition table\n");
+	/******************************************************/
 
 	numslots = (master->erasesize / sizeof(struct fis_image_desc));
+	
+	#if 0	/* del by lsz 081211 */
 	for (i = 0; i < numslots; i++) {
 		if (!memcmp(buf[i].name, "FIS directory", 14)) {
 			/* This is apparently the FIS directory entry for the
@@ -158,17 +275,13 @@ static int parse_redboot_partitions(struct mtd_info *master,
 		ret = 0;
 		goto out;
 	}
+	#endif 
 
 	for (i = 0; i < numslots; i++) {
 		struct fis_list *new_fl, **prev;
 
-		if (buf[i].name[0] == 0xff) {
-			if (buf[i].name[1] == 0xff) {
+		if (buf[i].name[0] == 0xff)
 				break;
-			} else {
-				continue;
-			}
-		}
 		if (!redboot_checksum(&buf[i]))
 			break;
 
@@ -213,8 +326,11 @@ static int parse_redboot_partitions(struct mtd_info *master,
 
 	if (!parts) {
 		ret = -ENOMEM;
+		printk("Malloc parts failed\n");
 		goto out;
 	}
+
+	memset(parts, 0, sizeof(*parts)*nrparts + nulllen + namelen);
 
 	nullname = (char *)&parts[nrparts];
 #ifdef CONFIG_MTD_REDBOOT_PARTS_UNALLOCATED
@@ -269,7 +385,8 @@ static int parse_redboot_partitions(struct mtd_info *master,
 		fl = fl->next;
 		kfree(old);
 	}
-	vfree(buf);
+    /* this is a bug ,modified by liaoxinkai 2010.6.2 */
+	//vfree(buf);
 	return ret;
 }
 

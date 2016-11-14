@@ -51,9 +51,9 @@
 
                 $RCSfile: EplErrDef.h,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.9 $  $Date: 2008/06/23 14:56:33 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

@@ -1825,7 +1825,8 @@ void addrconf_prefix_rcv(struct net_device *dev, u8 *opt, int len)
 				rt->rt6i_flags &= ~RTF_EXPIRES;
 				rt->rt6i_expires = 0;
 			}
-		} else if (valid_lft) {
+		}  
+        if (valid_lft) {
 			clock_t expires = 0;
 			int flags = RTF_ADDRCONF | RTF_PREFIX_RT;
 			if (addrconf_finite_timeout(rt_expires)) {

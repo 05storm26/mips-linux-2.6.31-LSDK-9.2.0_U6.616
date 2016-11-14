@@ -21,7 +21,7 @@
  *
  *
  *
- *  $Id: dabusb.c,v 1.54 2000/07/24 21:39:39 deti Exp $
+ *  $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/media/video/dabusb.c#1 $
  *
  */
 

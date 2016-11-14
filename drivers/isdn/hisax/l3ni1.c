@@ -1,4 +1,4 @@
-/* $Id: l3ni1.c,v 2.8.2.3 2004/01/13 14:31:25 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/l3ni1.c#1 $
  *
  * NI1 D-channel protocol
  *
@@ -24,7 +24,7 @@
 #include <linux/ctype.h>
 
 extern char *HiSax_getrev(const char *revision);
-static const char *ni1_revision = "$Revision: 2.8.2.3 $";
+static const char *ni1_revision = "$Revision: #1 $";
 
 #define EXT_BEARER_CAPS 1
 

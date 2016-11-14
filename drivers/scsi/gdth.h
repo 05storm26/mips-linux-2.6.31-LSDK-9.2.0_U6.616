@@ -10,7 +10,7 @@
  *
  * <achim_leubner@adaptec.com>
  *
- * $Id: gdth.h,v 1.58 2006/01/11 16:14:09 achim Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/gdth.h#1 $
  */
 
 #include <linux/types.h>

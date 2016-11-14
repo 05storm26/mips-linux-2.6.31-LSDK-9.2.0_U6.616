@@ -8,6 +8,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/skbuff.h>
 
+#ifndef CONFIG_PRIV_SKB_MEM
 int skb_dma_map(struct device *dev, struct sk_buff *skb,
 		enum dma_data_direction dir)
 {
@@ -63,3 +64,4 @@ void skb_dma_unmap(struct device *dev, struct sk_buff *skb,
 	}
 }
 EXPORT_SYMBOL(skb_dma_unmap);
+#endif

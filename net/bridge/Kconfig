@@ -31,3 +31,33 @@ config BRIDGE
 	  will be called bridge.
 
 	  If unsure, say N.
+
+config HYBRID_BRIDGE_SUPPORT
+	bool "802.1d Ethernet Hybrid Bridging"
+	select LLC
+	select STP
+	default n
+	---help---
+	  If you say Y here, then the Ethernet hybrid bridge will be enabled. It extends
+	  the Ethernet bridge features, like path swithing, bridge snooping and etc.
+
+	  [!] NOTE, It is independence with Ethernet bridge, so if you say Y here, the
+	  Ethernet bridge will be disabled by this macro.
+
+	  If unsure, say N.
+
+config HYBRID_BRIDGE_SNOOPING
+	bool "IGMP/MLD snooping"
+	depends on HYBRID_BRIDGE_SUPPORT
+	depends on INET
+	default n
+	---help---
+	  If you say Y here, then the Ethernet hybrid bridge will be able selectively
+	  forward multicast traffic based on IGMP/MLD traffic received from
+	  each port.
+
+	  Say N to exclude this support and reduce the binary size.
+
+	  If unsure, say N.
+
+

@@ -582,26 +582,62 @@ static int htb_enqueue(struct sk_buff *skb, struct Qdisc *sch)
 
 static inline void htb_accnt_tokens(struct htb_class *cl, int bytes, long diff)
 {
+        long old_cnt = cl->tokens;
 	long toks = diff + cl->tokens;
+        if(toks < old_cnt)
+        {
+            /*overflow*/
+            toks = cl->buffer;
+        }
 
 	if (toks > cl->buffer)
-		toks = cl->buffer;
+	{
+	    toks = cl->buffer;
+	}
+
+	old_cnt = toks;
 	toks -= (long) qdisc_l2t(cl->rate, bytes);
+	if(toks > old_cnt)
+	{
+	    /*overflow*/
+	    toks = 1 - cl->mbuffer;
+	}
+
 	if (toks <= -cl->mbuffer)
-		toks = 1 - cl->mbuffer;
+	{
+	    toks = 1 - cl->mbuffer;
+	}
 
 	cl->tokens = toks;
 }
 
 static inline void htb_accnt_ctokens(struct htb_class *cl, int bytes, long diff)
 {
+        long old_cnt = cl->ctokens;
 	long toks = diff + cl->ctokens;
+        if(toks < old_cnt)
+        {
+            /*overflow*/
+            toks = cl->cbuffer;
+        }
 
 	if (toks > cl->cbuffer)
-		toks = cl->cbuffer;
+	{
+	    toks = cl->cbuffer;
+	}
+
+	old_cnt = toks;
 	toks -= (long) qdisc_l2t(cl->ceil, bytes);
+        if(toks > old_cnt)
+        {
+            /*overflow*/
+            toks = 1 - cl->mbuffer;
+        }
+
 	if (toks <= -cl->mbuffer)
-		toks = 1 - cl->mbuffer;
+	{
+	    toks = 1 - cl->mbuffer;
+	}
 
 	cl->ctokens = toks;
 }

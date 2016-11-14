@@ -121,6 +121,9 @@ struct neigh_table *clip_tbl_hook;
 
 #include <linux/netfilter_arp.h>
 
+#undef IDONTRECEIVEMYOWNPACKETSBACK 
+#define HBUFFERLEN 30
+
 /*
  *	Interface to generic neighbour cache.
  */
@@ -129,6 +132,8 @@ static int arp_constructor(struct neighbour *neigh);
 static void arp_solicit(struct neighbour *neigh, struct sk_buff *skb);
 static void arp_error_report(struct neighbour *neigh, struct sk_buff *skb);
 static void parp_redo(struct sk_buff *skb);
+
+static char *mac2asc(char *, unsigned char *sha, unsigned char addr_len);
 
 static struct neigh_ops arp_generic_ops = {
 	.family =		AF_INET,
@@ -178,7 +183,7 @@ struct neigh_table arp_tbl = {
 	.id =		"arp_cache",
 	.parms = {
 		.tbl =			&arp_tbl,
-		.base_reachable_time =	30 * HZ,
+		.base_reachable_time =	300 * HZ,
 		.retrans_time =	1 * HZ,
 		.gc_staletime =	60 * HZ,
 		.reachable_time =		30 * HZ,
@@ -196,6 +201,21 @@ struct neigh_table arp_tbl = {
 	.gc_thresh2 =	512,
 	.gc_thresh3 =	1024,
 };
+
+/*
+ *	Display an IP address in readable format. 
+ */
+ 
+char *in_ntoa(__u32 in)
+{
+	static char buff[18];
+	char *p;
+
+	p = (char *) &in;
+	sprintf(buff, "%d.%d.%d.%d",
+		(p[0] & 255), (p[1] & 255), (p[2] & 255), (p[3] & 255));
+	return(buff);
+}
 
 int arp_mc_map(__be32 addr, u8 *haddr, struct net_device *dev, int dir)
 {
@@ -693,6 +713,21 @@ void arp_send(int type, int ptype, __be32 dest_ip,
 }
 
 /*
+ *	Check if an IP is belonged to the dev
+ */
+
+static int ip_belong_to_dev(u32 ip, struct in_device* in_dev)
+{
+	struct in_ifaddr *ifa_list = in_dev->ifa_list;
+	for (;ifa_list != NULL;ifa_list = ifa_list->ifa_next)
+	{
+		if (ifa_list->ifa_address == ip)
+			return 1;
+	}
+	return 0;
+}
+
+/*
  *	Process an arp request.
  */
 
@@ -709,6 +744,10 @@ static int arp_process(struct sk_buff *skb)
 	int addr_type;
 	struct neighbour *n;
 	struct net *net = dev_net(dev);
+
+#ifdef IDONTRECEIVEMYOWNPACKETSBACK
+	char hbuffer[HBUFFERLEN];
+#endif
 
 	/* arp_rcv below verifies the ARP header and verifies the device
 	 * is ARP'able.
@@ -801,6 +840,55 @@ static int arp_process(struct sk_buff *skb)
  *  cache.
  */
 
+	/* The patch initially checked for duplicate IPs, but it's easy to check
+	 * for duplicate MACs at the same time too.  -- Marc */
+	if (!memcmp(sha,dev->dev_addr,dev->addr_len)) {
+		if (ip_route_input(skb, sip, tip, 0, dev) == 0)
+		{
+			rt = (struct rtable*)skb_dst(skb);
+			addr_type = rt->rt_type;
+
+			if (addr_type == RTN_LOCAL)
+			{
+#ifdef IDONTRECEIVEMYOWNPACKETSBACK
+/* This is an attempt at detecting that someone stole your MAC and your IP, but
+* in some network configurations and with some switches, you will get your
+* own packets back, so this warning would be triggered by error for too many
+* people.
+* It's disabled by default but I have left it there in case it's useful to 
+* someone -- Marc <marcsoft@merlins.org> */
+				if (net_ratelimit()) {
+					printk(KERN_WARNING "We either got one of our ARP packets back because of a switch"
+						" or the network configuration, or some machine is using our MAC address %s and"
+						" our IP address %s\n",mac2asc(hbuffer,sha,dev->addr_len),in_ntoa(sip));
+				}
+#endif
+				goto gotdupemac;
+			}
+		}
+		#if 0	/* del by lsz, no necessary to do this, 2009.03.11*/
+		if (!ip_belong_to_dev(sip, in_dev))
+		{
+			if (net_ratelimit())
+			{
+				printk(KERN_WARNING "Uh Oh, I received an ARP packet claiming to be from our MAC address %s,"
+					" but with an IP I don't own (%s). Someone has apparently stolen our MAC address\n",
+					mac2asc(hbuffer,sha,dev->addr_len),in_ntoa(sip));
+			}
+		}
+		#endif
+	}
+	else if (ip_belong_to_dev(sip, in_dev))			/* sender ip is our IP */					
+	{
+		/* reply to this bad boy */
+		arp_send(ARPOP_REPLY,ETH_P_ARP,sip,dev,sip,sha,dev->dev_addr,sha);
+		/* tell everyone I am the owner of this IP */
+		arp_send(ARPOP_REQUEST,ETH_P_ARP,sip,dev,sip,NULL,dev->dev_addr,NULL);
+		goto out;	
+	}
+	
+gotdupemac:
+
 	/* Special case: IPv4 duplicate address detection packet (RFC2131) */
 	if (sip == 0) {
 		if (arp->ar_op == htons(ARPOP_REQUEST) &&
@@ -831,7 +919,7 @@ static int arp_process(struct sk_buff *skb)
 					neigh_release(n);
 				}
 			}
-			goto out;
+			//goto out;	/* del by lsz 090610, we should check the sender */
 		} else if (IN_DEV_FORWARD(in_dev)) {
 			    if (addr_type == RTN_UNICAST  && rt->u.dst.dev != dev &&
 			     (arp_fwd_proxy(in_dev, rt) || pneigh_lookup(&arp_tbl, net, &tip, dev, 0))) {
@@ -872,6 +960,21 @@ static int arp_process(struct sk_buff *skb)
 		int state = NUD_REACHABLE;
 		int override;
 
+		/* if we already have a permanent entry and the source mac addr
+		 * is not same as in entry, reply it and broadcast GARP, dont update.
+		 * lsz 09.04.23
+		 */
+		if ((n->nud_state & NUD_PERMANENT) && memcmp(sha, n->ha, ETH_ALEN))
+		{
+			/* reply */
+			arp_send(ARPOP_REPLY,ETH_P_ARP,sip,dev,sip,sha,n->ha,sha);
+			/* tell everyone */
+			arp_send(ARPOP_REQUEST,ETH_P_ARP,sip,dev,sip,NULL,n->ha,NULL);
+
+			neigh_release(n);
+			goto out;
+		}
+		
 		/* If several different ARP replies follows back-to-back,
 		   use the FIRST one. It is possible, if several proxy
 		   agents are active. Taking the first reply prevents
@@ -1220,6 +1323,13 @@ void arp_ifdown(struct net_device *dev)
 	neigh_ifdown(&arp_tbl, dev);
 }
 
+/* 
+ * Flush dev's arp entry, this interface is for hardware nat module to flush arp entry
+ */
+void arp_flush_dev(struct net_device *dev)
+{
+	neigh_flush_with_dev(&arp_tbl, dev);
+}
 
 /*
  *	Called once on startup.
@@ -1281,38 +1391,46 @@ static char *ax2asc2(ax25_address *a, char *buf)
 }
 #endif /* CONFIG_AX25 */
 
-#define HBUFFERLEN 30
+/*
+ *	Convert Mac Address to ASCII 
+ *	Use a buffer[HBUFFERLEN] for buffer
+ */
+char *mac2asc(char *buffer, unsigned char *ha, unsigned char addr_len) {
+	//const char hexbuf[] = "0123456789ABCDEF";
+	int j,k;
+
+#if defined(CONFIG_AX25) || defined(CONFIG_AX25_MODULE)
+	if (hatype == ARPHRD_AX25 || hatype == ARPHRD_NETROM)
+		ax2asc2((ax25_address *)ha, buffer);
+	else {
+#endif
+		for (k = 0, j = 0; k < HBUFFERLEN-3 && j < addr_len; j++) {
+			buffer[k++] = hex_asc_hi(ha[j]);
+			buffer[k++] = hex_asc_lo(ha[j]);
+			buffer[k++] = ':';
+	}
+		buffer[--k]=0;
+
+#if defined(CONFIG_AX25) || defined(CONFIG_AX25_MODULE)
+	}
+#endif
+	return buffer;
+}
 
 static void arp_format_neigh_entry(struct seq_file *seq,
 				   struct neighbour *n)
 {
 	char hbuffer[HBUFFERLEN];
-	int k, j;
+	/*int k, j;*/
 	char tbuf[16];
 	struct net_device *dev = n->dev;
 	int hatype = dev->type;
 
 	read_lock(&n->lock);
-	/* Convert hardware address to XX:XX:XX:XX ... form. */
-#if defined(CONFIG_AX25) || defined(CONFIG_AX25_MODULE)
-	if (hatype == ARPHRD_AX25 || hatype == ARPHRD_NETROM)
-		ax2asc2((ax25_address *)n->ha, hbuffer);
-	else {
-#endif
-	for (k = 0, j = 0; k < HBUFFERLEN - 3 && j < dev->addr_len; j++) {
-		hbuffer[k++] = hex_asc_hi(n->ha[j]);
-		hbuffer[k++] = hex_asc_lo(n->ha[j]);
-		hbuffer[k++] = ':';
-	}
-	if (k != 0)
-		--k;
-	hbuffer[k] = 0;
-#if defined(CONFIG_AX25) || defined(CONFIG_AX25_MODULE)
-	}
-#endif
+
 	sprintf(tbuf, "%pI4", n->primary_key);
 	seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
-		   tbuf, hatype, arp_state_to_flags(n), hbuffer, dev->name);
+		   tbuf, hatype, arp_state_to_flags(n), mac2asc(hbuffer,n->ha,dev->addr_len), dev->name);
 	read_unlock(&n->lock);
 }
 
@@ -1415,6 +1533,7 @@ EXPORT_SYMBOL(arp_create);
 EXPORT_SYMBOL(arp_xmit);
 EXPORT_SYMBOL(arp_send);
 EXPORT_SYMBOL(arp_tbl);
+EXPORT_SYMBOL(arp_flush_dev);
 
 #if defined(CONFIG_ATM_CLIP) || defined(CONFIG_ATM_CLIP_MODULE)
 EXPORT_SYMBOL(clip_tbl_hook);

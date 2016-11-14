@@ -1,4 +1,4 @@
-/* $Id: diva.h,v 1.1.2.2 2001/02/08 12:25:43 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/diva.h#1 $ */
 
 #ifndef __DIVA_XDI_OS_PART_H__
 #define __DIVA_XDI_OS_PART_H__

@@ -1,4 +1,4 @@
-/* $Id: xdi_adapter.h,v 1.7 2004/03/21 17:26:01 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/xdi_adapter.h#1 $ */
 
 #ifndef __DIVA_OS_XDI_ADAPTER_H__
 #define __DIVA_OS_XDI_ADAPTER_H__

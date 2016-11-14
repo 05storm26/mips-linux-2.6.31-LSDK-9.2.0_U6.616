@@ -1,5 +1,5 @@
 /***********************************
- * $Id: quicc_simple.h,v 1.1 2002/03/02 15:01:10 gerg Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/m68k/include/asm/quicc_simple.h#1 $
  ***********************************
  *
  ***************************************

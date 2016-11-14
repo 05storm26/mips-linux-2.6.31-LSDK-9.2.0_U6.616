@@ -1,4 +1,4 @@
-/* $Id: cache.h,v 1.6 2004/03/11 18:08:05 lethal Exp $
+/* $Id: //depot/sw/releases/9.5.1/linux/kernels/mips-linux-2.6.31/arch/sh/include/asm/cache.h#1 $
  *
  * include/asm-sh/cache.h
  *

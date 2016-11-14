@@ -26,6 +26,9 @@ struct fib_config {
 	u8			fc_protocol;
 	u8			fc_scope;
 	u8			fc_type;
+#ifdef CONFIG_MAPPING
+	unsigned char fib_config_rtm_mapping;
+#endif
 	/* 3 bytes unused */
 	u32			fc_table;
 	__be32			fc_dst;
@@ -41,7 +44,11 @@ struct fib_config {
 	u32			fc_flow;
 	u32			fc_nlflags;
 	struct nl_info		fc_nlinfo;
- };
+#ifdef CONFIG_MAPPING
+	unsigned long		fib_config_rtm_src_prefix;	/* Mapping src prefix */
+	unsigned long		fib_config_rtm_dst_prefix;	/* Mapping dst prefix */
+#endif
+};
 
 struct fib_info;
 
@@ -86,6 +93,11 @@ struct fib_info {
 #ifdef CONFIG_IP_ROUTE_MULTIPATH
 	int			fib_power;
 #endif
+#ifdef CONFIG_MAPPING
+	unsigned char           fib_mapping;    /* For Mapping  */
+	unsigned long		fib_src_prefix;	/* Mapping src prefix */
+	unsigned long		fib_dst_prefix; /* Mapping dst prefix */
+#endif
 	struct fib_nh		fib_nh[0];
 #define fib_dev		fib_nh[0].nh_dev
 };
@@ -103,6 +115,11 @@ struct fib_result {
 	struct fib_info *fi;
 #ifdef CONFIG_IP_MULTIPLE_TABLES
 	struct fib_rule	*r;
+#endif
+#ifdef CONFIG_MAPPING
+	unsigned char	mapping;
+	unsigned long	src_prefix;
+	unsigned long	dst_prefix;
 #endif
 };
 

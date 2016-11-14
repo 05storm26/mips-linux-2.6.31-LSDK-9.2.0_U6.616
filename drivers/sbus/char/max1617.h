@@ -1,4 +1,4 @@
-/* $Id: max1617.h,v 1.1 2001/04/02 09:59:08 davem Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/sbus/char/max1617.h#1 $ */
 #ifndef _MAX1617_H
 #define _MAX1617_H
 

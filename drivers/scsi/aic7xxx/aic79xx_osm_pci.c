@@ -36,7 +36,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id: //depot/aic7xxx/linux/drivers/scsi/aic7xxx/aic79xx_osm_pci.c#25 $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/aic7xxx/aic79xx_osm_pci.c#1 $
  */
 
 #include "aic79xx_osm.h"

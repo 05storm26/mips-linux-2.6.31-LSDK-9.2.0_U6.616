@@ -94,6 +94,21 @@ void br_deliver(const struct net_bridge_port *to, struct sk_buff *skb)
 /* called with rcu_read_lock */
 void br_forward(const struct net_bridge_port *to, struct sk_buff *skb)
 {
+#ifdef CONFIG_ATH_HOTSPOT
+	/* the src port and dest port are the same and this port has l2tif
+	 * enabled, then forward the frame to the configured wan port
+	 */
+	if (to->l2tif && skb->dev == to->dev) {
+		struct net_bridge *br = to->br;
+		struct net_bridge_port *p;
+		list_for_each_entry_rcu(p, &br->port_list, list) {
+			if (p->iswan) {
+				to = p;
+				break;
+			}
+		}
+	}
+#endif
 	if (should_deliver(to, skb)) {
 		__br_forward(to, skb);
 		return;
@@ -109,8 +124,24 @@ static void br_flood(struct net_bridge *br, struct sk_buff *skb,
 {
 	struct net_bridge_port *p;
 	struct net_bridge_port *prev;
+#ifdef CONFIG_TP_MULTICAST
+	mac_addr multi_mac_addr;
+	unsigned char *pmac = multi_mac_addr.addr;
+	memset(pmac, 0, 6/*ETH_ALEN*/);
+#endif
 
 	prev = NULL;
+
+/* backup multicast address. by HouXB, 07Dec10 */
+#ifdef CONFIG_TP_MULTICAST			
+#define IS_MULTICAST_ADDR(ptr)  ((ptr[0] == 0x01) && (ptr[1] == 0x00) && (ptr[2] == 0x5e) ? 1 : 0)
+
+	if(IS_MULTICAST_ADDR(skb_mac_header(skb)))
+	{
+		//backup multicast address
+		memcpy(pmac, skb_mac_header(skb), 6/*ETH_ALEN*/);
+	}
+#endif
 
 	list_for_each_entry_rcu(p, &br->port_list, list) {
 		if (should_deliver(p, skb)) {
@@ -123,6 +154,14 @@ static void br_flood(struct net_bridge *br, struct sk_buff *skb,
 					return;
 				}
 
+#ifdef CONFIG_TP_MULTICAST				
+				if(IS_MULTICAST_ADDR(pmac))
+				{
+					//restore multicast address
+					memcpy(skb_mac_header(skb), pmac, 6/*ETH_ALEN*/);
+				}
+#endif
+
 				__packet_hook(prev, skb2);
 			}
 
@@ -131,6 +170,13 @@ static void br_flood(struct net_bridge *br, struct sk_buff *skb,
 	}
 
 	if (prev != NULL) {
+#ifdef CONFIG_TP_MULTICAST				
+		if(IS_MULTICAST_ADDR(pmac))
+		{
+			//restore multicast address
+			memcpy(skb_mac_header(skb), pmac, 6/*ETH_ALEN*/);
+		}
+#endif
 		__packet_hook(prev, skb);
 		return;
 	}

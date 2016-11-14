@@ -12,7 +12,8 @@
 #include <linux/netfilter.h>
 #include <net/netfilter/nf_conntrack_l4proto.h>
 
-static unsigned int nf_ct_generic_timeout __read_mostly = 600*HZ;
+/* shorten timeout. by HouXB, 24Nov10 */
+static unsigned int nf_ct_generic_timeout __read_mostly = 120*HZ;
 
 static bool generic_pkt_to_tuple(const struct sk_buff *skb,
 				 unsigned int dataoff,

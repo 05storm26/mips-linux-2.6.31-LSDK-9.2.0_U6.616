@@ -239,22 +239,56 @@ static struct usb_endpoint_descriptor hs_ecm_notify_desc __initdata = {
 	.wMaxPacketSize =	cpu_to_le16(ECM_STATUS_BYTECOUNT),
 	.bInterval =		LOG2_STATUS_INTERVAL_MSEC + 4,
 };
+#ifdef CONFIG_MULTIPLE_INTERFACE
+static struct usb_endpoint_descriptor hs_ecm_in_desc[2] __initdata = {
+	{
+		.bLength =		USB_DT_ENDPOINT_SIZE,
+		.bDescriptorType =	USB_DT_ENDPOINT,
+
+		.bEndpointAddress =	USB_DIR_IN,
+		.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+		.wMaxPacketSize =	cpu_to_le16(512),
+	},
+	{
+#else
 static struct usb_endpoint_descriptor hs_ecm_in_desc __initdata = {
+#endif
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 
 	.bEndpointAddress =	USB_DIR_IN,
 	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+#ifdef	CONFIG_MACH_AR934x
 	.wMaxPacketSize =	cpu_to_le16(512),
+#else
+	.wMaxPacketSize =	cpu_to_le16(512),
+#endif
 };
 
+#ifdef CONFIG_MULTIPLE_INTERFACE
+static struct usb_endpoint_descriptor hs_ecm_out_desc[2] __initdata = {
+	{
+        	.bLength =              USB_DT_ENDPOINT_SIZE,
+        	.bDescriptorType =      USB_DT_ENDPOINT,
+
+        	.bEndpointAddress =     USB_DIR_OUT,
+        	.bmAttributes =         USB_ENDPOINT_XFER_BULK,
+        	.wMaxPacketSize =       cpu_to_le16(512),
+	},
+	{
+#else
 static struct usb_endpoint_descriptor hs_ecm_out_desc __initdata = {
+#endif
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 
 	.bEndpointAddress =	USB_DIR_OUT,
 	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+#ifdef	CONFIG_MACH_AR934x
 	.wMaxPacketSize =	cpu_to_le16(512),
+#else
+	.wMaxPacketSize =	cpu_to_le16(512),
+#endif
 };
 
 static struct usb_descriptor_header *ecm_hs_function[] __initdata = {

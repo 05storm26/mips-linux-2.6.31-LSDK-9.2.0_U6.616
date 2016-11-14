@@ -2,7 +2,7 @@
  *
  * Copyright © 2000-2008 Alacritech, Inc.  All rights reserved.
  *
- * $Id: sxg.h,v 1.3 2008/07/24 17:25:08 chris Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/staging/sxg/sxg.h#1 $
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

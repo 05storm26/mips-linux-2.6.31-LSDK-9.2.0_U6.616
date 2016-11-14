@@ -1,4 +1,4 @@
-/* $Id: divasi.c,v 1.25.6.2 2005/01/31 12:22:20 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/divasi.c#1 $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * User Mode IDI Interface 
@@ -26,7 +26,7 @@
 #include "um_xdi.h"
 #include "um_idi.h"
 
-static char *main_revision = "$Revision: 1.25.6.2 $";
+static char *main_revision = "$Revision: #1 $";
 
 static int major;
 

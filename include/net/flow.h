@@ -15,6 +15,10 @@ struct flowi {
 	int	iif;
 	__u32	mark;
 
+#ifdef CONFIG_MAPPING
+	struct sk_buff *skb;
+#endif
+
 	union {
 		struct {
 			__be32			daddr;

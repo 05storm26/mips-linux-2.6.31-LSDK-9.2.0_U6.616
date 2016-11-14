@@ -143,6 +143,36 @@ static ssize_t store_flush(struct net_bridge_port *p, unsigned long v)
 }
 static BRPORT_ATTR(flush, S_IWUSR, NULL, store_flush);
 
+#ifdef CONFIG_ATH_HOTSPOT
+static ssize_t show_iswan(struct net_bridge_port *p, char *buf)
+{
+	return sprintf(buf, "%d\n", p->iswan);
+}
+static ssize_t store_iswan(struct net_bridge_port *p, unsigned long v)
+{
+	if (v >= 2)
+		return -ERANGE;
+	p->iswan = v;
+	return 0;
+}
+static BRPORT_ATTR(hotspot_wan, S_IRUGO | S_IWUSR,
+			 show_iswan, store_iswan);
+
+static ssize_t show_l2tif(struct net_bridge_port *p, char *buf)
+{
+	return sprintf(buf, "%d\n", p->l2tif);
+}
+static ssize_t store_l2tif(struct net_bridge_port *p, unsigned long v)
+{
+	if (v >= 2)
+		return -ERANGE;
+	p->l2tif = v;
+	return 0;
+}
+static BRPORT_ATTR(hotspot_l2tif, S_IRUGO | S_IWUSR,
+			 show_l2tif, store_l2tif);
+#endif
+
 static struct brport_attribute *brport_attrs[] = {
 	&brport_attr_path_cost,
 	&brport_attr_priority,
@@ -159,6 +189,10 @@ static struct brport_attribute *brport_attrs[] = {
 	&brport_attr_forward_delay_timer,
 	&brport_attr_hold_timer,
 	&brport_attr_flush,
+#ifdef CONFIG_ATH_HOTSPOT
+	&brport_attr_hotspot_wan,
+	&brport_attr_hotspot_l2tif,
+#endif
 	NULL
 };
 

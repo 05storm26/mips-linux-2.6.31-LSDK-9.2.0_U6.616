@@ -92,6 +92,15 @@ config IP_NF_MATCH_ECN
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
+config IP_NF_MATCH_MULTIURL
+	tristate 'multiurl match support'
+	depends on NETFILTER_ADVANCED
+	help
+	  MULTIURL matching allows you to match packets based on the host
+	  section of the http packet.
+
+	  To compile it as a module, choose M here.  If unsure, say N.
+
 config IP_NF_MATCH_TTL
 	tristate '"ttl" match support'
 	depends on NETFILTER_ADVANCED
@@ -181,6 +190,19 @@ config IP_NF_TARGET_MASQUERADE
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
+config IP_NF_TARGET_TRIGGER
+	tristate "Port Trigger"
+	depends on NF_NAT
+	default m if NETFILTER_ADVANCED=n
+	help
+	  Port Trigger Support.
+
+	  To compile it as a module, choose M here.  If unsure, say N.
+
+config IP_NF_TARGET_NATTYPE
+        tristate "NATTYPE target support"
+        depends on IP_NF_IPTABLES
+
 config IP_NF_TARGET_NETMAP
 	tristate "NETMAP target support"
 	depends on NF_NAT
@@ -220,6 +242,55 @@ config NF_NAT_SNMP_BASIC
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
+config ATHRS_HW_NAT
+	bool "Atheros H/W NAT"
+	depends on NF_NAT
+	help
+	  This option adds the support for atheros hardware nat
+	  accelerator.
+
+config ATHRS_HW_ACL
+	bool "Atheros H/W ACL"
+	depends on IP_NF_FILTER
+	help
+	  This option adds the support for atheros hardware firewall
+	  feature.
+
+config ATHRS_FASTNAT
+	bool "Atheros FASTNAT"
+	depends on NF_NAT
+	help
+	  This option adds the support for atheros software nat
+	  accelerator.
+
+config ATHRS27_AR8236
+	bool "Atheros driver for AR8326"
+	depends on NF_NAT
+	help
+	  This option adds the support for Atheros driver for AR8326.
+	  It's used to identify AR8236 for one mac.
+
+config ATHRS17_HNAT
+	bool "Atheros H/W NAT for AR8327N/AR8328N"
+	depends on NF_NAT
+	help
+	  This option adds the support for Atheros HNAT feature for
+	  AR8327N/AR8328N.
+
+config ATHRS17_HNAT_VLAN
+	bool "Atheros H/W NAT for AR8327N/AR8328N(USE VLAN DEV)"
+	depends on ATHRS17_HNAT
+	help
+	  This option adds the support for Atheros HNAT feature for
+	  AR8327N/AR8328N(USE VLAN DEV).
+
+config ATHRS17_WIFI_HNAT
+	bool "Atheros H/W NAT for AR8327N/AR8328N(Enable WIFI HNAT)"
+	depends on ATHRS17_HNAT
+	help
+	  This option adds the support for Atheros HNAT feature for
+	  AR8327N/AR8328N(Enable WIFI HNAT).
+
 # If they want FTP, set to $CONFIG_IP_NF_NAT (m or y),
 # or $CONFIG_IP_NF_FTP (m or y), whichever is weaker.
 # From kconfig-language.txt:
@@ -256,6 +327,11 @@ config NF_NAT_IRC
 	tristate
 	depends on NF_CONNTRACK && NF_NAT
 	default NF_NAT && NF_CONNTRACK_IRC
+
+config NF_NAT_RTSP
+	tristate
+ 	depends on IP_NF_IPTABLES && NF_CONNTRACK && NF_NAT
+ 	default NF_NAT && NF_CONNTRACK_RTSP
 
 config NF_NAT_TFTP
 	tristate
@@ -353,6 +429,7 @@ config IP_NF_SECURITY
 	  with Mandatory Access Control (MAC) policy.
 	 
 	  If unsure, say N.
+
 
 endif # IP_NF_IPTABLES
 

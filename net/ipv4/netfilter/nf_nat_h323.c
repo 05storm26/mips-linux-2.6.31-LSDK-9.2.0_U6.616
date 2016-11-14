@@ -241,9 +241,7 @@ static int nat_rtp_rtcp(struct sk_buff *skb, struct nf_conn *ct,
 
 	/* Modify signal */
 	if (set_h245_addr(skb, data, dataoff, taddr,
-			  &ct->tuplehash[!dir].tuple.dst.u3,
-			  htons((port & htons(1)) ? nated_port + 1 :
-						    nated_port)) == 0) {
+			  &ct->tuplehash[!dir].tuple.dst.u3, nated_port) == 0) {
 		/* Save ports */
 		info->rtp_port[i][dir] = rtp_port;
 		info->rtp_port[i][!dir] = htons(nated_port);

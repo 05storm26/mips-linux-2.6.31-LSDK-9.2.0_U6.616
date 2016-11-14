@@ -268,8 +268,6 @@ static int expect_rtp_rtcp(struct sk_buff *skb, struct nf_conn *ct,
 	    port == 0)
 		return 0;
 
-	/* RTP port is even */
-	port &= htons(~1);
 	rtp_port = port;
 	rtcp_port = htons(ntohs(port) + 1);
 

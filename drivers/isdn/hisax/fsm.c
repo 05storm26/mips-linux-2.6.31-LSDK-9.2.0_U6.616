@@ -1,4 +1,4 @@
-/* $Id: fsm.c,v 1.14.6.4 2001/09/23 22:24:47 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/fsm.c#1 $
  *
  * Finite state machine
  *

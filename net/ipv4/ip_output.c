@@ -80,6 +80,9 @@
 #include <linux/netlink.h>
 #include <linux/tcp.h>
 
+#ifdef  CONFIG_MAPPING
+#include "proto_trans.h"        /* for ip_mapping() */
+#endif
 int sysctl_ip_default_ttl __read_mostly = IPDEFTTL;
 
 /* Generate a checksum for an outgoing IP datagram. */
@@ -297,7 +300,16 @@ int ip_mc_output(struct sk_buff *skb)
 int ip_output(struct sk_buff *skb)
 {
 	struct net_device *dev = skb_dst(skb)->dev;
-
+#ifdef CONFIG_MAPPING
+       struct rtable *rt;
+       struct iphdr *myiph;
+       myiph = (struct iphdr *)ip_hdr(skb);
+       rt = (struct rtable *)skb_dst(skb);
+       if (rt->mapping) {      /* Packet translation for local output */
+               ip_mapping(skb, rt->src_prefix, rt->dst_prefix);
+               return 0;
+       }
+#endif
 	IP_UPD_PO_STATS(dev_net(dev), IPSTATS_MIB_OUT, skb->len);
 
 	skb->dev = dev;
@@ -500,8 +512,8 @@ int ip_fragment(struct sk_buff *skb, int (*output)(struct sk_buff *))
 			if (skb->sk) {
 				frag->sk = skb->sk;
 				frag->destructor = sock_wfree;
+				truesizes += frag->truesize;
 			}
-			truesizes += frag->truesize;
 		}
 
 		/* Everything is OK. Generate! */

@@ -15,7 +15,7 @@
     30.08.2004   -rs  TRACE5 eingefügt
     23.12.2005   d.k. Definitions for IAR compiler
 
-    $Id: global.h,v 1.6 2008/11/07 13:55:56 D.Krueger Exp $
+    $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/staging/epl/global.h#1 $
 
 ****************************************************************************/
 

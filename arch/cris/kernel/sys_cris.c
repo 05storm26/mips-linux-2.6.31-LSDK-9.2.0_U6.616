@@ -1,4 +1,4 @@
-/* $Id: sys_cris.c,v 1.6 2004/03/11 11:38:40 starvik Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/kernel/sys_cris.c#1 $
  *
  * linux/arch/cris/kernel/sys_cris.c
  *

@@ -51,9 +51,9 @@
 
                 $RCSfile: EplLed.h,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.1 $  $Date: 2008/11/17 16:40:39 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

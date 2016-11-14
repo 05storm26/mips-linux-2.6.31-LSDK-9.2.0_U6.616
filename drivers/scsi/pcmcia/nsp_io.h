@@ -7,7 +7,7 @@
 
   */
 
-/* $Id: nsp_io.h,v 1.3 2003/08/04 21:15:26 elca Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/pcmcia/nsp_io.h#1 $ */
 
 #ifndef __NSP_IO_H__
 #define __NSP_IO_H__

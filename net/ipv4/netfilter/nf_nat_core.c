@@ -212,7 +212,7 @@ find_best_ips_proto(struct nf_conntrack_tuple *tuple,
 	maxip = ntohl(range->max_ip);
 	j = jhash_2words((__force u32)tuple->src.u3.ip,
 			 range->flags & IP_NAT_RANGE_PERSISTENT ?
-				0 : (__force u32)tuple->dst.u3.ip, 0);
+				(__force u32)tuple->dst.u3.ip : 0, 0);
 	j = ((u64)j * (maxip - minip + 1)) >> 32;
 	*var_ipp = htonl(minip + j);
 }
@@ -287,6 +287,10 @@ nf_nat_setup_info(struct nf_conn *ct,
 	struct nf_conntrack_tuple curr_tuple, new_tuple;
 	struct nf_conn_nat *nat;
 	int have_to_hash = !(ct->status & IPS_NAT_DONE_MASK);
+#ifdef CONFIG_ATHRS_HW_NAT
+        void (*athr_ct_alter_port)(struct nf_conntrack_tuple,
+                                   struct nf_conntrack_tuple, struct nf_conn *);
+#endif
 
 	/* nat helper or nfctnetlink also setup binding */
 	nat = nfct_nat(ct);
@@ -319,6 +323,13 @@ nf_nat_setup_info(struct nf_conn *ct,
 		nf_ct_invert_tuplepr(&reply, &new_tuple);
 		nf_conntrack_alter_reply(ct, &reply);
 
+#ifdef CONFIG_ATHRS_HW_NAT
+                if (athr_nat_sw_ops) {
+                        athr_ct_alter_port = rcu_dereference(athr_nat_sw_ops->nf_alter_port);
+                        if (athr_ct_alter_port)
+                                athr_ct_alter_port(curr_tuple, new_tuple, ct);
+                }
+#endif
 		/* Non-atomic: we own this at the moment. */
 		if (maniptype == IP_NAT_MANIP_SRC)
 			ct->status |= IPS_SRC_NAT;
@@ -750,8 +761,7 @@ static int __init nf_nat_init(void)
 	BUG_ON(nfnetlink_parse_nat_setup_hook != NULL);
 	rcu_assign_pointer(nfnetlink_parse_nat_setup_hook,
 			   nfnetlink_parse_nat_setup);
-	BUG_ON(nf_ct_nat_offset != NULL);
-	rcu_assign_pointer(nf_ct_nat_offset, nf_nat_get_offset);
+
 	return 0;
 
  cleanup_extend:
@@ -766,7 +776,6 @@ static void __exit nf_nat_cleanup(void)
 	nf_ct_extend_unregister(&nat_extend);
 	rcu_assign_pointer(nf_nat_seq_adjust_hook, NULL);
 	rcu_assign_pointer(nfnetlink_parse_nat_setup_hook, NULL);
-	rcu_assign_pointer(nf_ct_nat_offset, NULL);
 	synchronize_net();
 }
 

@@ -1,4 +1,4 @@
-/* $Id: icc.h,v 1.4.2.2 2004/01/12 22:52:26 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/icc.h#1 $
  *
  * ICC specific routines
  *

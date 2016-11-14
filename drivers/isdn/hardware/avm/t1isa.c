@@ -1,4 +1,4 @@
-/* $Id: t1isa.c,v 1.1.2.3 2004/02/10 01:07:12 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/avm/t1isa.c#1 $
  * 
  * Module for AVM T1 HEMA-card.
  * 
@@ -29,7 +29,7 @@
 
 /* ------------------------------------------------------------- */
 
-static char *revision = "$Revision: 1.1.2.3 $";
+static char *revision = "$Revision: #1 $";
 
 /* ------------------------------------------------------------- */
 

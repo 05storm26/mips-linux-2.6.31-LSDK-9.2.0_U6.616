@@ -512,6 +512,12 @@ static int decode_seq(bitstr_t *bs, const struct field_t *f,
 
 	/* Decode the root components */
 	for (i = opt = 0, son = f->fields; i < f->lb; i++, son++) {
+		/* To avoid kernel panic -- add by ZJin 101122 */
+		if (!son)
+		{
+			return H323_ERROR_STOP;
+		}
+		/* end add */
 		if (son->attr & STOP) {
 			PRINT("%*.s%s\n", (level + 1) * TAB_SIZE, " ",
 			      son->name);

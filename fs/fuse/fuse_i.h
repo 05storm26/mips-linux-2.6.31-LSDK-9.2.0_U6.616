@@ -23,7 +23,7 @@
 #include <linux/poll.h>
 
 /** Max number of pages that can be used in a single read request */
-#define FUSE_MAX_PAGES_PER_REQ 32
+#define FUSE_MAX_PAGES_PER_REQ 512
 
 /** Maximum number of outstanding background requests */
 #define FUSE_MAX_BACKGROUND 12

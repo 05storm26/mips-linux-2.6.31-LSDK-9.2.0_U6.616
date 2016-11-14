@@ -1,8 +1,16 @@
 VERSION = 2
 PATCHLEVEL = 6
 SUBLEVEL = 31
-EXTRAVERSION = .14
+EXTRAVERSION=
 NAME = Man-Eating Seals of Antiquity
+
+ifndef EXTRAVERSION
+EXTRAVERSION=-$(shell if test -e ./ath_version.mk ; then \
+                cat ./ath_version.mk | sed s/EXTRAVERSION=//g; fi)
+ifeq ($(EXTRAVERSION),-)
+EXTRAVERSION=
+endif
+endif
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -155,11 +163,7 @@ export srctree objtree VPATH
 # then ARCH is assigned, getting whatever value it gets normally, and 
 # SUBARCH is subsequently ignored.
 
-SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
-				  -e s/arm.*/arm/ -e s/sa110/arm/ \
-				  -e s/s390x/s390/ -e s/parisc64/parisc/ \
-				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
-				  -e s/sh[234].*/sh/ )
+SUBARCH := mips
 
 # Cross compiling and selecting different set of gcc/bin-utils
 # ---------------------------------------------------------------------------
@@ -555,6 +559,23 @@ ifdef CONFIG_DEBUG_SECTION_MISMATCH
 KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
 endif
 
+# Advanced mips 24kc optimization
+ifdef CONFIG_MIPS_24K_KERNEL_OPTIMIZATION
+KBUILD_CFLAGS	+= $(call cc-option,-funit-at-a-time)
+KBUILD_CFLAGS	+= $(call cc-option,-pipe)
+KBUILD_CFLAGS	+= $(call cc-option,-mips32r2)
+KBUILD_CFLAGS	+= $(call cc-option,-mtune=mips32r2)
+KBUILD_CFLAGS	+= $(call cc-option,-Os)
+endif
+
+# Advanced mips 74kc optimization
+ifdef CONFIG_MIPS_74K_KERNEL_OPTIMIZATION
+KBUILD_CFLAGS	+= $(call cc-option,-funit-at-a-time)
+KBUILD_CFLAGS	+= $(call cc-option,-pipe)
+KBUILD_CFLAGS	+= $(call cc-option,-mtune=74kc)
+KBUILD_CFLAGS	+= $(call cc-option,-Os)
+endif
+
 # arch Makefile may override CC so keep this after arch Makefile is included
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 CHECKFLAGS     += $(NOSTDINC_FLAGS)
@@ -570,6 +591,7 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 
 # revert to pre-gcc-4.4 behaviour of .eh_frame
 KBUILD_CFLAGS	+= $(call cc-option,-fno-dwarf2-cfi-asm)
+
 
 # Add user supplied CPPFLAGS, AFLAGS and CFLAGS as the last assignments
 # But warn user when we do so
@@ -979,6 +1001,11 @@ prepare0: archprepare FORCE
 
 # All the preparing..
 prepare: prepare0
+
+# Leave this as default for preprocessing vmlinux.lds.S, which is now
+# done in arch/$(ARCH)/kernel/Makefile
+
+export CPPFLAGS_vmlinux.lds += -P -C -U$(ARCH)
 
 # The asm symlink changes when $(ARCH) changes.
 # Detect this and ask user to run make mrproper

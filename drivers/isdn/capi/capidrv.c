@@ -1,4 +1,4 @@
-/* $Id: capidrv.c,v 1.1.2.2 2004/01/12 23:17:24 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/capi/capidrv.c#1 $
  *
  * ISDN4Linux Driver, using capi20 interface (kernelcapi)
  *
@@ -34,7 +34,7 @@
 #include <linux/isdn/capicmd.h>
 #include "capidrv.h"
 
-static char *revision = "$Revision: 1.1.2.2 $";
+static char *revision = "$Revision: #1 $";
 static int debugmode = 0;
 
 MODULE_DESCRIPTION("CAPI4Linux: Interface to ISDN4Linux");

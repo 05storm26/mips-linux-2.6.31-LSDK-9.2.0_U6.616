@@ -12,7 +12,7 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  *
- *  $Id: tun.c,v 1.15 2002/03/01 02:44:24 maxk Exp $
+ *  $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/tun.c#1 $
  */
 
 /*
@@ -943,6 +943,8 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 		char *name;
 		unsigned long flags = 0;
 
+		err = -EINVAL;
+
 		if (!capable(CAP_NET_ADMIN))
 			return -EPERM;
 
@@ -956,7 +958,7 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 			flags |= TUN_TAP_DEV;
 			name = "tap%d";
 		} else
-			return -EINVAL;
+			goto failed;
 
 		if (*ifr->ifr_name)
 			name = ifr->ifr_name;

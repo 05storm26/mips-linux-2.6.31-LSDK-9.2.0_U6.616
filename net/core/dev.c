@@ -96,6 +96,9 @@
 #include <net/net_namespace.h>
 #include <net/sock.h>
 #include <linux/rtnetlink.h>
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+#include <linux/imq.h>
+#endif
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/stat.h>
@@ -933,15 +936,14 @@ rollback:
 	ret = notifier_to_errno(ret);
 
 	if (ret) {
-		/* err >= 0 after dev_alloc_name() or stores the first errno */
-		if (err >= 0) {
-			err = ret;
-			memcpy(dev->name, oldname, IFNAMSIZ);
-			goto rollback;
-		} else {
+		if (err) {
 			printk(KERN_ERR
 			       "%s: name change rollback failed: %d.\n",
 			       dev->name, ret);
+		} else {
+			err = ret;
+			memcpy(dev->name, oldname, IFNAMSIZ);
+			goto rollback;
 		}
 	}
 
@@ -1687,7 +1689,11 @@ int dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev,
 	int rc;
 
 	if (likely(!skb->next)) {
-		if (!list_empty(&ptype_all))
+		if (!list_empty(&ptype_all)
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+		    && !(skb->imq_flags & IMQ_F_ENQUEUE)
+#endif
+		    )
 			dev_queue_xmit_nit(skb, dev);
 
 		if (netif_needs_gso(dev, skb)) {
@@ -1772,8 +1778,7 @@ u16 skb_tx_hash(const struct net_device *dev, const struct sk_buff *skb)
 }
 EXPORT_SYMBOL(skb_tx_hash);
 
-static struct netdev_queue *dev_pick_tx(struct net_device *dev,
-					struct sk_buff *skb)
+struct netdev_queue *dev_pick_tx(struct net_device *dev, struct sk_buff *skb)
 {
 	const struct net_device_ops *ops = dev->netdev_ops;
 	u16 queue_index = 0;
@@ -1786,6 +1791,7 @@ static struct netdev_queue *dev_pick_tx(struct net_device *dev,
 	skb_set_queue_mapping(skb, queue_index);
 	return netdev_get_tx_queue(dev, queue_index);
 }
+EXPORT_SYMBOL(dev_pick_tx);
 
 /**
  *	dev_queue_xmit - transmit a buffer
@@ -1957,6 +1963,9 @@ int netif_rx(struct sk_buff *skb)
 {
 	struct softnet_data *queue;
 	unsigned long flags;
+#ifdef	CONFIG_MAPPING
+	if (skb->dev != NULL)
+#endif
 
 	/* if netpoll wants it, pretend we never saw it */
 	if (netpoll_rx(skb))
@@ -1976,6 +1985,9 @@ int netif_rx(struct sk_buff *skb)
 	if (queue->input_pkt_queue.qlen <= netdev_max_backlog) {
 		if (queue->input_pkt_queue.qlen) {
 enqueue:
+#ifdef	CONFIG_MAPPING
+			if (skb->dev != NULL)
+#endif
 			__skb_queue_tail(&queue->input_pkt_queue, skb);
 			local_irq_restore(flags);
 			return NET_RX_SUCCESS;
@@ -2226,6 +2238,10 @@ void netif_nit_deliver(struct sk_buff *skb)
 	rcu_read_unlock();
 }
 
+#ifdef CONFIG_ATHRS_FASTNAT
+int (*athrs_fast_nat_recv)(struct sk_buff *skb);
+#endif
+
 /**
  *	netif_receive_skb - process receive buffer from network
  *	@skb: buffer to process
@@ -2249,18 +2265,29 @@ int netif_receive_skb(struct sk_buff *skb)
 	int ret = NET_RX_DROP;
 	__be16 type;
 
-	if (!skb->tstamp.tv64)
-		net_timestamp(skb);
-
 	if (skb->vlan_tci && vlan_hwaccel_do_receive(skb))
 		return NET_RX_SUCCESS;
 
 	/* if we've gotten here through NAPI, check netpoll */
+#ifdef	CONFIG_MAPPING
+	if (skb->dev)
+#endif
 	if (netpoll_receive_skb(skb))
 		return NET_RX_DROP;
 
+	if (!skb->tstamp.tv64)
+		net_timestamp(skb);
+
 	if (!skb->iif)
 		skb->iif = skb->dev->ifindex;
+
+#ifdef CONFIG_ATHRS_FASTNAT
+	if(athrs_fast_nat_recv)
+	{
+		if(athrs_fast_nat_recv(skb))
+			return NET_RX_SUCCESS;
+	}
+#endif
 
 	null_or_orig = NULL;
 	orig_dev = skb->dev;
@@ -4499,7 +4526,7 @@ int dev_ioctl(struct net *net, unsigned int cmd, void __user *arg)
 		case SIOCSIFMETRIC:
 		case SIOCSIFMTU:
 		case SIOCSIFMAP:
-		case SIOCSIFHWADDR:
+		/* case SIOCSIFHWADDR:by HouXB, 28Oct10 */
 		case SIOCSIFSLAVE:
 		case SIOCADDMULTI:
 		case SIOCDELMULTI:
@@ -4516,6 +4543,8 @@ int dev_ioctl(struct net *net, unsigned int cmd, void __user *arg)
 			if (!capable(CAP_NET_ADMIN))
 				return -EPERM;
 			/* fall through */
+		/* make set hw addr success. by HouXB, 28Oct10 */	
+		case SIOCSIFHWADDR:
 		case SIOCBONDSLAVEINFOQUERY:
 		case SIOCBONDINFOQUERY:
 			dev_load(net, ifr.ifr_name);
@@ -4808,11 +4837,6 @@ int register_netdevice(struct net_device *dev)
 		rollback_registered(dev);
 		dev->reg_state = NETREG_UNREGISTERED;
 	}
-	/*
-	 *	Prevent userspace races by waiting until the network
-	 *	device is fully setup before sending notifications.
-	 */
-	rtmsg_ifinfo(RTM_NEWLINK, dev, ~0U);
 
 out:
 	return ret;
@@ -5348,12 +5372,6 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 	/* Notify protocols, that a new device appeared. */
 	call_netdevice_notifiers(NETDEV_REGISTER, dev);
 
-	/*
-	 *	Prevent userspace races by waiting until the network
-	 *	device is fully setup before sending notifications.
-	 */
-	rtmsg_ifinfo(RTM_NEWLINK, dev, ~0U);
-
 	synchronize_net();
 	err = 0;
 out:
@@ -5644,7 +5662,9 @@ static int __init initialize_hashrnd(void)
 }
 
 late_initcall_sync(initialize_hashrnd);
-
+#ifdef CONFIG_ATHRS_FASTNAT
+EXPORT_SYMBOL(athrs_fast_nat_recv);
+#endif
 EXPORT_SYMBOL(__dev_get_by_index);
 EXPORT_SYMBOL(__dev_get_by_name);
 EXPORT_SYMBOL(__dev_remove_pack);

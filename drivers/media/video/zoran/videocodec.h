@@ -6,7 +6,7 @@
  *
  * (c) 2002 Wolfgang Scherr <scherr@net4you.at>
  *
- * $Id: videocodec.h,v 1.1.2.4 2003/01/14 21:15:03 rbultje Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/media/video/zoran/videocodec.h#1 $
  *
  * ------------------------------------------------------------------------
  *

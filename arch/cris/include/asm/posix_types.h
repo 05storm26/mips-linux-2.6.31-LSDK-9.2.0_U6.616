@@ -1,4 +1,4 @@
-/* $Id: posix_types.h,v 1.1 2000/07/10 16:32:31 bjornw Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/posix_types.h#1 $ */
 
 /* We cheat a bit and use our C-coded bitops functions from asm/bitops.h */
 /* I guess we should write these in assembler because they are used often. */

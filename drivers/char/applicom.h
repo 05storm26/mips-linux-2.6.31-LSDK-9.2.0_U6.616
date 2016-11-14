@@ -1,4 +1,4 @@
-/* $Id: applicom.h,v 1.2 1999/08/28 15:09:49 dwmw2 Exp $ */
+/* $Id: //depot/sw/branches/NewmaStaging/linux/kernels/mips-linux-2.6.31/drivers/char/applicom.h#1 $ */
 
 
 #ifndef __LINUX_APPLICOM_H__

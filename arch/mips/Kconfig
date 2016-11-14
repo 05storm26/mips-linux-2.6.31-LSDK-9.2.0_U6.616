@@ -1,12 +1,9 @@
 config MIPS
 	bool
 	default y
-	select HAVE_IDE
-	select HAVE_OPROFILE
-	select HAVE_ARCH_KGDB
 	# Horrible source of confusion.  Die, die, die ...
 	select EMBEDDED
-	select RTC_LIB
+	select HAVE_OPROFILE
 
 mainmenu "Linux/MIPS Kernel Configuration"
 
@@ -656,7 +653,243 @@ config CAVIUM_OCTEON_REFERENCE_BOARD
 		Hikari
 	  Say Y here for most Octeon reference boards.
 
+config  MACH_AR7100
+	bool "Support for Atheros ar7100 based boards"
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HW_HAS_PCI
+
+config  MACH_AR7240
+	bool "Support for Atheros ar7240 based board"
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R1
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HW_HAS_PCI
+	select HAVE_KERNEL_LZMA
+	select HAVE_OPROFILE
+
+config  MACH_AR724x
+	bool "Support for Atheros ar724x based board"
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R1
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HW_HAS_PCI
+	select HAVE_KERNEL_LZMA
+	select ATH_BSP
+
+config MACH_HORNET
+	bool "Support for Atheros HORNET based board"
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R1
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HAVE_KERNEL_LZMA
+
+config  MACH_AR933x
+	bool "Support for Atheros ar933x based board"
+	select HAVE_KERNEL_LZMA
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R1
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HAVE_KERNEL_LZMA
+	select ATH_BSP
+
+config  MACH_AR934x
+	bool "Support for Atheros ar934x based board"
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R1
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HW_HAS_PCI
+	select HAVE_KERNEL_LZMA
+	select ATH_BSP
+	select HAVE_AOW_PLATFORM_SUPPORT
+
+config  MACH_QCA955x
+	bool "Support for Atheros ar955x based board"
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_MIPS32_R1
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_BIG_ENDIAN
+	select HW_HAS_PCI
+	select HAVE_KERNEL_LZMA
+	select ATH_BSP
+
 endchoice
+
+config AR7240_EMULATION
+	bool "build system for AR7240 emulation board?"
+	depends on MACH_AR7240
+
+config WASP_SUPPORT
+	bool "build system for WASP based board"
+	depends on MACH_AR7240
+
+config ATH_DDR_RELEASE_TIMER
+	int "Use RST Timer 2 to prevent CPU hogging the DDR"
+	depends on MACH_AR934x || MACH_QCA955x
+	default 0 if MACH_AR934x || MACH_QCA955x
+	help
+	  Use the second RST Timer to prevent CPU from hogging the DDR
+	  Set this to zero to turn off this feature
+
+config ATH_TURN_ON_DDR_HOG
+	bool "DDR Hog code [Debug helpers]"
+	depends on MACH_AR934x || MACH_QCA955x
+	default n
+	help
+	  DDR Hogging code snippets. This is used while testing
+	  to re-create USB Babble (or) SLIC/I2S failures.
+
+config ATH_TEST_TIMER
+	bool "Validate WDT and other timers"
+	depends on MACH_QCA955x
+	default n
+
+config ATH_EMULATION
+	bool "Build for Atheros emulation boards"
+	depends on MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x
+
+config INSMOD_KSEG0
+	bool "Allocation of code segment when inserting module from KSEG0"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+
+config PERICOM
+	bool "Pericom Switch support"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+
+config I2S
+	bool "I2s support"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config AOW_I2S_SUPPORT
+	bool "Audio over Wireless I2S support"
+	depends on I2S && HAVE_AOW_PLATFORM_SUPPORT
+	default n
+	help
+	  If you say "y" here, the I2S driver (CONFIG_I2S) is modified
+	  to support Atheros Audio over Wireless (AoW) functionality.
+	  AoW is available only for a few select platforms. Consult AoW
+	  documentation for more details.
+
+config KMALLOC_MINALIGN_64BYTE
+	bool "64 byte min alignment for kmalloc"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config PRIV_SKB_MEM
+	bool "Use contiguous fixed memory pool for SKBs of size less than 4KB"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config PRIV_SKB_MEM_2K
+	int "Size of memory pool in MB for SKBs of size 2KB - default 5MB"
+	depends on PRIV_SKB_MEM
+	default 5
+
+config PRIV_SKB_MEM_4K
+	int "Size of memory pool in MB for SKBs of size 4KB - default 9MB"
+	depends on PRIV_SKB_MEM
+	default 9
+
+config WLAN_4K_SKB_OPT
+	bool "Allocate 4K-SKB with separate SKB shinfo to save memory"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config ATH_PERF
+	bool "Try to improve Performance"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config ATH_HOTSPOT
+	bool "Support Hotspot on Atheros APs - mods to bridging layer"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config JUMPSTART_GPIO_SUPPORT
+	bool "Enable WPS Switch GPIO"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+	default n
+
+config JUMPSTART_GPIO_NUMBER
+	int "WPS switch GPIO #"
+	depends on (MACH_AR7240 || MACH_AR724x || MACH_AR934x) && JUMPSTART_GPIO_SUPPORT
+	default 12
+
+config AP_USB_LED_GPIO_SUPPORT
+	bool "Enable USB LED GPIO"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR934x || MACH_QCA955x
+        default n
+
+config AP_USB_LED_GPIO_NUMBER
+	int "USB LED GPIO #"
+	depends on ( MACH_AR7240 || MACH_AR724x || MACH_AR934x ) && AP_USB_LED_GPIO_SUPPORT
+	default 0
+
+config AP_WPS_LED_GPIO_SUPPORT
+	bool "Enable WPS LED GPIO"
+	depends on MACH_AR7240 || MACH_AR724x || (MACH_AR934x && !I2S) || MACH_QCA955x
+	default n
+
+config AP_WPS_LED_GPIO_NUMBER
+	int "WPS LED GPIO #"
+	depends on ( MACH_AR7240 || MACH_AR724x || MACH_AR934x ) && AP_WPS_LED_GPIO_SUPPORT
+	default 5
+
+config ATH_HWCS
+	bool "Enable Atheros H/W Checksum Engine"
+	depends on MACH_AR934x || MACH_QCA955x
+	default n
+
+config HORNET_EMULATION
+	bool "build system for Hornet emulation board?"
+	depends on MACH_HORNET
+
+config  AR9100
+	bool "Support for Atheros ar9100 extenstions to ar7100"
+	depends on MACH_AR7100
+
+config  AR7100_LOW
+	bool "Support for loading AR7100 in low memory"
+	depends on MACH_AR7100
+
+config AR7100_EMULATION
+	bool "build system for AR7100 emulation board?"
+	depends on MACH_AR7100
 
 source "arch/mips/alchemy/Kconfig"
 source "arch/mips/basler/excite/Kconfig"
@@ -668,8 +901,33 @@ source "arch/mips/sibyte/Kconfig"
 source "arch/mips/txx9/Kconfig"
 source "arch/mips/vr41xx/Kconfig"
 source "arch/mips/cavium-octeon/Kconfig"
+source "arch/mips/atheros/Kconfig"
 
 endmenu
+
+config ATH_BSP
+	bool
+
+config WATCHDOG_RESET_TIMER
+	bool "Support crash recovery depeding on watch dog"
+	depends on MACH_AR7240 || MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_HORNET
+	default n
+
+config ATH_SYS_TYPE
+	string "Atheros system type"
+	depends on ATH_BSP
+	default "Atheros AR724x" if MACH_AR724x
+	default "Atheros AR9330 (Hornet)" if MACH_AR933x
+	default "Atheros AR934x" if MACH_AR934x
+	default "QCA955x" if MACH_QCA955x
+
+config ATH_MACH_TYPE
+	int "Atheros MIPS Mach type"
+	depends on ATH_BSP
+	default 1 if MACH_AR724x
+	default 2 if MACH_AR933x
+	default 3 if MACH_AR934x
+	default 4 if MACH_QCA955x
 
 config RWSEM_GENERIC_SPINLOCK
 	bool
@@ -712,7 +970,7 @@ config GENERIC_TIME
 
 config GENERIC_CMOS_UPDATE
 	bool
-	default y
+	default n
 
 config SCHED_OMIT_FRAME_POINTER
 	bool
@@ -837,6 +1095,10 @@ config MIPS_DISABLE_OBSOLETE_IDE
 config SYNC_R4K
 	bool
 
+config IMAGE_CMDLINE_HACK
+	bool "OpenWrt specific image command line hack"
+	default n
+
 config NO_IOPORT
 	def_bool n
 
@@ -850,6 +1112,13 @@ config GENERIC_ISA_DMA_SUPPORT_BROKEN
 
 config GENERIC_GPIO
 	bool
+
+config CPU_HAS_DSP_ASE
+	bool "MIPS DSP Extension"
+	default n
+	help
+	  Enable this option for the MIPS DSP Application Specific Extension
+	  support in the CPU
 
 #
 # Endianess selection.  Sufficiently obscure so many users don't know what to
@@ -1078,7 +1347,7 @@ config CPU_MIPS32_R2
 	select CPU_HAS_LLSC
 	select CPU_HAS_PREFETCH
 	select CPU_SUPPORTS_32BIT_KERNEL
-	select CPU_SUPPORTS_HIGHMEM
+#	select CPU_SUPPORTS_HIGHMEM
 	help
 	  Choose this option to build a kernel for release 2 or later of the
 	  MIPS32 architecture.  Most modern embedded systems with a 32-bit
@@ -2040,6 +2309,24 @@ config HW_HAS_EISA
 config HW_HAS_PCI
 	bool
 
+config ATH_HAS_PCI_RC2
+	bool "Support for PCI controller RC2"
+	depends on HW_HAS_PCI
+	select PCI_DOMAINS
+	help
+	  Find out whether you have a RC2 in the system. RC2 is the name of a
+	  2nd PCIe Root Complex.Other default Root Complex is RC1.
+	  If you have RC2,say Y, otherwise N.
+
+config ATH_HAS_PCI_EP
+	bool "Support for PCIE EP"
+	depends on HW_HAS_PCI
+	select PCI_DOMAINS
+	help
+	  Find out whether you have a EP in the system. PCIE can be configured as EP.
+	  Other default Root Complex is RC1.
+	  If you have EP,say Y, otherwise N.
+
 config PCI
 	bool "Support for PCI controller"
 	depends on HW_HAS_PCI
@@ -2171,7 +2458,7 @@ config ARCH_HIBERNATION_POSSIBLE
 	depends on SYS_SUPPORTS_HOTPLUG_CPU || !SMP
 
 config ARCH_SUSPEND_POSSIBLE
-	def_bool y
+	def_bool n
 	depends on SYS_SUPPORTS_HOTPLUG_CPU || !SMP
 
 source "kernel/power/Kconfig"

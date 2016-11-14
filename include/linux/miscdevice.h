@@ -12,8 +12,11 @@
 #define APOLLO_MOUSE_MINOR	7
 #define PC110PAD_MINOR		9
 /*#define ADB_MOUSE_MINOR	10	FIXME OBSOLETE */
+#define FACTORY_RESET_MINOR     129     /* Factory reset minor */
 #define WATCHDOG_MINOR		130	/* Watchdog timer     */
 #define TEMP_MINOR		131	/* Temperature Sensor */
+#define ATH_OTP_MINOR		132	/* Atheros OTP */
+#define ATH_CLKSW_MINOR		133	/* Atheros OTP */
 #define RTC_MINOR		135
 #define EFI_RTC_MINOR		136	/* EFI Time services */
 #define SUN_OPENPROM_MINOR	139

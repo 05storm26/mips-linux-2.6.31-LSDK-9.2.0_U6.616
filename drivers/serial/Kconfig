@@ -5,6 +5,12 @@
 menu "Serial drivers"
 	depends on HAS_IOMEM
 
+config ATH_HS_UART
+	bool "Atheros High Speed UART"
+	depends on MACH_AR934x || MACH_QCA955x
+	default n
+	help
+	  Use Atheros High Speed UART as console
 #
 # The new 8250/16550 serial drivers
 config SERIAL_8250
@@ -265,6 +271,47 @@ config SERIAL_8250_AU1X00
 	  If you have an Au1x00 SOC based board and want to use the serial port,
 	  say Y to this option. The driver can handle up to 4 serial ports,
 	  depending on the SOC. If unsure, say N.
+
+config SERIAL_HORNET
+	bool "HORNET serial port support"
+	depends on !SERIAL_8250 && !ATH_HS_UART
+	select SERIAL_CORE
+	help
+	  Enable Hornet support uart console.
+
+config SERIAL_HORNET_CONSOLE
+	bool "Console on HORNET serial port"
+	depends on SERIAL_HORNET=y
+	select SERIAL_CORE_CONSOLE
+	---help---
+	  If you say Y here, it will be possible to use a serial port as the
+	  system console (the system console is the device which receives all
+	  kernel messages and warnings and which allows logins in single user
+	  mode). This could be useful if some terminal or printer is connected
+	  to that serial port.
+
+	  Even if you say Y here, the currently visible virtual console
+	  (/dev/tty0) will still be used as the system console by default, but
+	  you can alter that using a kernel command line option such as
+	  "console=ttyS1". (Try "man bootparam" or see the documentation of
+	  your boot loader (grub or lilo or loadlin) about how to pass options
+	  to the kernel at boot time.)
+
+	  If you don't have a VGA card installed and you say Y here, the
+	  kernel will automatically use the first serial line, /dev/ttyS0, as
+	  system console.
+
+	  If unsure, say N.
+
+config SERIAL_HORNET_NR_UARTS
+	int "Maximum number of HORNET serial ports"
+	depends on SERIAL_HORNET
+	default "4"
+	help
+	  Set this to the number of serial ports you want the driver
+	  to support.  This includes any ports discovered via ACPI or
+	  PCI enumeration and any ports that may be added at run-time
+	  via hot-plug, or any ISA multi-port serial cards.
 
 config SERIAL_8250_RM9K
 	bool "Support for MIPS RM9xxx integrated serial port"

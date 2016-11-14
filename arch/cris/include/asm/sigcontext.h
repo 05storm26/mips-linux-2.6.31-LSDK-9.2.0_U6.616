@@ -1,4 +1,4 @@
-/* $Id: sigcontext.h,v 1.1 2000/07/10 16:32:31 bjornw Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/sigcontext.h#1 $ */
 
 #ifndef _ASM_CRIS_SIGCONTEXT_H
 #define _ASM_CRIS_SIGCONTEXT_H

@@ -1,4 +1,4 @@
-/* $Id: adapter.h,v 1.4 2004/03/21 17:26:01 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/adapter.h#1 $ */
 
 #ifndef __DIVA_USER_MODE_IDI_ADAPTER_H__
 #define __DIVA_USER_MODE_IDI_ADAPTER_H__

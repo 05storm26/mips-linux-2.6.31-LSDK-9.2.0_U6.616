@@ -48,7 +48,9 @@ ifneq ($(SUBARCH),$(ARCH))
   endif
 endif
 
-cflags-y := -ffunction-sections
+
+#cflags-y := -ffunction-sections
+
 cflags-y += $(call cc-option, -mno-check-zero-division)
 
 ifdef CONFIG_32BIT
@@ -123,8 +125,13 @@ cflags-$(CONFIG_CPU_TX49XX)	+= -march=r4600 -Wa,--trap
 cflags-$(CONFIG_CPU_LOONGSON2)	+= -march=r4600 -Wa,--trap
 cflags-$(CONFIG_CPU_MIPS32_R1)	+= $(call cc-option,-march=mips32,-mips32 -U_MIPS_ISA -D_MIPS_ISA=_MIPS_ISA_MIPS32) \
 			-Wa,-mips32 -Wa,--trap
+ifndef  CONFIG_MIPS_74K_KERNEL_OPTIMIZATION
 cflags-$(CONFIG_CPU_MIPS32_R2)	+= $(call cc-option,-march=mips32r2,-mips32r2 -U_MIPS_ISA -D_MIPS_ISA=_MIPS_ISA_MIPS32) \
 			-Wa,-mips32r2 -Wa,--trap
+else
+cflags-$(CONFIG_CPU_MIPS32_R2)	+= $(call cc-option,-march=74kc, -mtune=74kc, -U_MIPS_ISA -D_MIPS_ISA=_MIPS_ISA_MIPS32) \
+			-Wa,-march=74kc -Wa,--trap
+endif
 cflags-$(CONFIG_CPU_MIPS64_R1)	+= $(call cc-option,-march=mips64,-mips64 -U_MIPS_ISA -D_MIPS_ISA=_MIPS_ISA_MIPS64) \
 			-Wa,-mips64 -Wa,--trap
 cflags-$(CONFIG_CPU_MIPS64_R2)	+= $(call cc-option,-march=mips64r2,-mips64r2 -U_MIPS_ISA -D_MIPS_ISA=_MIPS_ISA_MIPS64) \
@@ -612,8 +619,68 @@ else
 load-$(CONFIG_CPU_CAVIUM_OCTEON) 	+= 0xffffffff81100000
 endif
 
+#Atheros Ar7240
+#
+core-$(CONFIG_MACH_AR7240)		+=	arch/mips/ar7240/
+cflags-$(CONFIG_MACH_AR7240)	+= -I$(srctree)/arch/mips/include/asm/mach-ar7240
+load-$(CONFIG_MACH_AR7240)		+=	0xffffffff80002000
+#load-$(CONFIG_MACH_AR7240)		+=	0xffffffffa0002000
+#
+
+#Atheros Ar9330(Hornet)
+#
+core-$(CONFIG_MACH_HORNET)		+=	arch/mips/ar7240/
+load-$(CONFIG_MACH_HORNET)		+=	0xffffffff80002000
+cflags-$(CONFIG_MACH_HORNET)	+= -I$(srctree)/arch/mips/include/asm/mach-ar7240
+
+# Atheros Ar724x (Virian, Python)
+#
+core-$(CONFIG_MACH_AR724x)	+= arch/mips/atheros/
+cflags-$(CONFIG_MACH_AR724x)	+= -I$(srctree)/arch/mips/include/asm/mach-atheros
+load-$(CONFIG_MACH_AR724x)	+= 0xffffffff80002000
+#load-$(CONFIG_MACH_AR724x)	+= 0xffffffffa0002000
+#
+
+# Atheros Ar933x (Hornet)
+#
+core-$(CONFIG_MACH_AR933x)	+= arch/mips/atheros/
+load-$(CONFIG_MACH_AR933x)	+= 0xffffffff80002000
+cflags-$(CONFIG_MACH_AR933x)	+= -I$(srctree)/arch/mips/include/asm/mach-atheros
+#
+
+# Atheros Ar934x (Wasp)
+#
+core-$(CONFIG_MACH_AR934x)	+= arch/mips/atheros/
+cflags-$(CONFIG_MACH_AR934x)	+= -I$(srctree)/arch/mips/include/asm/mach-atheros
+load-$(CONFIG_MACH_AR934x)	+= 0xffffffff80002000
+#
+
+# QCA955x (Scorpion)
+#
+core-$(CONFIG_MACH_QCA955x)	+= arch/mips/atheros/
+cflags-$(CONFIG_MACH_QCA955x)	+= -I$(srctree)/arch/mips/include/asm/mach-atheros -mdspr2
+load-$(CONFIG_MACH_QCA955x)	+= 0xffffffff80002000
+#
+
+##Atheros Ar7100 ( Hydra )
+#
+core-$(CONFIG_MACH_AR7100)    += arch/mips/ar7100/
+load-$(CONFIG_MACH_AR7100)    += 0x80002000
+cflags-$(CONFIG_MACH_AR7100)  += -I$(srctree)/arch/mips/include/asm/mach-ar7100
+
 cflags-y			+= -I$(srctree)/arch/mips/include/asm/mach-generic
+
 drivers-$(CONFIG_PCI)		+= arch/mips/pci/
+
+ifdef CONFIG_32BIT
+ifdef CONFIG_CPU_LITTLE_ENDIAN
+JIFFIES			= jiffies_64
+else
+JIFFIES			= jiffies_64 + 4
+endif
+else
+JIFFIES			= jiffies_64
+endif
 
 #
 # Automatically detect the build format. By default we choose
@@ -638,9 +705,8 @@ ifdef CONFIG_64BIT
 endif
 
 KBUILD_AFLAGS	+= $(cflags-y)
-KBUILD_CFLAGS	+= $(cflags-y)
-KBUILD_CPPFLAGS += -D"VMLINUX_LOAD_ADDRESS=$(load-y)"
-KBUILD_CPPFLAGS += -D"DATAOFFSET=$(if $(dataoffset-y),$(dataoffset-y),0)"
+KBUILD_CFLAGS	+= $(cflags-y) \
+			-D"VMLINUX_LOAD_ADDRESS=$(load-y)"
 
 LDFLAGS			+= -m $(ld-emul)
 
@@ -654,6 +720,18 @@ endif
 endif
 
 OBJCOPYFLAGS		+= --remove-section=.reginfo
+
+#
+# Choosing incompatible machines durings configuration will result in
+# error messages during linking.  Select a default linkscript if
+# none has been choosen above.
+#
+
+CPPFLAGS_vmlinux.lds := \
+	$(KBUILD_CFLAGS) \
+	-D"LOADADDR=$(load-y)" \
+	-D"JIFFIES=$(JIFFIES)" \
+	-D"DATAOFFSET=$(if $(dataoffset-y),$(dataoffset-y),0)"
 
 head-y := arch/mips/kernel/head.o arch/mips/kernel/init_task.o
 

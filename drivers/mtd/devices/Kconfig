@@ -297,5 +297,22 @@ config MTD_DOCPROBE_55AA
 	  LinuxBIOS or if you need to recover a DiskOnChip Millennium on which
 	  you have managed to wipe the first block.
 
+config MTD_AR7240_SPI_FLASH
+	bool "Support for ar7240 spi flash"
+	depends on MTD
+
+config MTD_ATH_FLASH
+	bool "Support for Atheros spi flash"
+	depends on MTD
+
+config MTD_AR7100_SPI_FLASH
+    bool "Support for ar7100 spi flash"
+    depends on MTD
+
+config MTD_AR9100_PARALLEL_FLASH
+    bool "Support for ar9100 parallel flash"
+    depends on MTD
+
+
 endmenu
 

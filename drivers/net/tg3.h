@@ -1,4 +1,4 @@
-/* $Id: tg3.h,v 1.37.2.32 2002/03/11 12:18:18 davem Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/tg3.h#1 $
  * tg3.h: Definitions for Broadcom Tigon3 ethernet driver.
  *
  * Copyright (C) 2001, 2002, 2003, 2004 David S. Miller (davem@redhat.com)

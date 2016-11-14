@@ -1,4 +1,4 @@
-/* $Id: sunbmac.h,v 1.7 2000/07/11 22:35:22 davem Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/sunbmac.h#1 $
  * sunbmac.h: Defines for the Sun "Big MAC" 100baseT ethernet cards.
  *
  * Copyright (C) 1997 David S. Miller (davem@caip.rutgers.edu)

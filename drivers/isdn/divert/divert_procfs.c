@@ -1,4 +1,4 @@
-/* $Id: divert_procfs.c,v 1.11.6.2 2001/09/23 22:24:36 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/divert/divert_procfs.c#1 $
  *
  * Filesystem handling for the diversion supplementary services.
  *

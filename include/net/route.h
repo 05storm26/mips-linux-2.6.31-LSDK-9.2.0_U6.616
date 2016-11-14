@@ -75,6 +75,11 @@ struct rtable
 	/* Miscellaneous cached information */
 	__be32			rt_spec_dst; /* RFC1122 specific destination */
 	struct inet_peer	*peer; /* long-living peer info */
+#ifdef	CONFIG_MAPPING
+	unsigned char		mapping;
+	__u32			src_prefix;
+	__u32			dst_prefix;
+#endif
 };
 
 struct ip_rt_acct

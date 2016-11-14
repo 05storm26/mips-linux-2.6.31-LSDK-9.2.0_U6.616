@@ -24,6 +24,8 @@
 #include <net/netfilter/nf_nat_core.h>
 #include <net/netfilter/nf_nat_rule.h>
 
+#include <linux/inetdevice.h>
+
 #define NAT_VALID_HOOKS ((1 << NF_INET_PRE_ROUTING) | \
 			 (1 << NF_INET_POST_ROUTING) | \
 			 (1 << NF_INET_LOCAL_OUT))
@@ -72,6 +74,7 @@ ipt_snat_target(struct sk_buff *skb, const struct xt_target_param *par)
 	struct nf_conn *ct;
 	enum ip_conntrack_info ctinfo;
 	const struct nf_nat_multi_range_compat *mr = par->targinfo;
+	u_int32_t out_mask = 0;
 
 	NF_CT_ASSERT(par->hooknum == NF_INET_POST_ROUTING);
 
@@ -82,6 +85,20 @@ ipt_snat_target(struct sk_buff *skb, const struct xt_target_param *par)
 			    ctinfo == IP_CT_RELATED + IP_CT_IS_REPLY));
 	NF_CT_ASSERT(par->out != NULL);
 
+	/* add Nat loopback, 101123 -- ZJin */
+	out_mask = in_dev_get(par->out)->ifa_list->ifa_mask;
+
+	/* we only care about the NAT-LoopBack:
+	 * 1) src addr and dst addr are in the same subnet 
+	 * 2) DNATed
+	 */
+	if ((ip_hdr(skb)->saddr & out_mask ) == (ip_hdr(skb)->daddr  & out_mask))
+	{
+		if (!test_bit(IPS_DST_NAT_BIT, &ct->status) || !test_bit(IPS_DST_NAT_DONE_BIT, &ct->status))
+			return IPT_CONTINUE;
+	}	
+	/* end -- ZJin */
+	
 	return nf_nat_setup_info(ct, &mr->range[0], IP_NAT_MANIP_SRC);
 }
 
@@ -153,9 +170,18 @@ int nf_nat_rule_find(struct sk_buff *skb,
 {
 	struct net *net = nf_ct_net(ct);
 	int ret;
+#ifdef CONFIG_ATHRS_HW_NAT
+        void (*athr_ct_check_layer2if)(struct sk_buff *, struct nf_conn *, int nf_nat_manip_type);
+#endif
 
 	ret = ipt_do_table(skb, hooknum, in, out, net->ipv4.nat_table);
-
+#ifdef CONFIG_ATHRS_HW_NAT
+        if (athr_nat_sw_ops) {
+		athr_ct_check_layer2if = rcu_dereference(athr_nat_sw_ops->check_layer2if);
+                if (athr_ct_check_layer2if)
+                	athr_ct_check_layer2if(skb, ct, HOOK2MANIP(hooknum));
+        }
+#endif
 	if (ret == NF_ACCEPT) {
 		if (!nf_nat_initialized(ct, HOOK2MANIP(hooknum)))
 			/* NUL mapping */

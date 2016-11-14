@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * $Id$
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/scsi/srp.h#1 $
  */
 
 #ifndef SCSI_SRP_H

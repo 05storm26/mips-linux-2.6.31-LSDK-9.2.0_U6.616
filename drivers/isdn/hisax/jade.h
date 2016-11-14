@@ -1,4 +1,4 @@
-/* $Id: jade.h,v 1.5.2.3 2004/01/14 16:04:48 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/jade.h#1 $
  *
  * JADE specific defines
  *

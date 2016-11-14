@@ -1,4 +1,4 @@
-/* $Id: b1.c,v 1.1.2.2 2004/01/16 21:09:27 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/avm/b1.c#1 $
  * 
  * Common module for AVM B1 cards.
  * 
@@ -28,7 +28,7 @@
 #include <linux/isdn/capicmd.h>
 #include <linux/isdn/capiutil.h>
 
-static char *revision = "$Revision: 1.1.2.2 $";
+static char *revision = "$Revision: #1 $";
 
 /* ------------------------------------------------------------- */
 

@@ -27,7 +27,7 @@
  * along with the aic94xx driver; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * $Id: //depot/aic94xx/aic94xx_reg_def.h#27 $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/aic94xx/aic94xx_reg_def.h#1 $
  *
  */
 

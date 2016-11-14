@@ -1,4 +1,4 @@
-/* $Id: um_xdi.h,v 1.1.2.2 2002/10/02 14:38:38 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/um_xdi.h#1 $ */
 
 #ifndef __DIVA_USER_MODE_XDI_H__
 #define __DIVA_USER_MODE_XDI_H__

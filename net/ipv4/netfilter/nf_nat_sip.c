@@ -59,17 +59,58 @@ static int map_addr(struct sk_buff *skb,
 	unsigned int buflen;
 	__be32 newaddr;
 	__be16 newport;
+	int needexpect = 0;
 
-	if (ct->tuplehash[dir].tuple.src.u3.ip == addr->ip &&
-	    ct->tuplehash[dir].tuple.src.u.udp.port == port) {
+	if (ct->tuplehash[dir].tuple.src.u3.ip == addr->ip) {
 		newaddr = ct->tuplehash[!dir].tuple.dst.u3.ip;
-		newport = ct->tuplehash[!dir].tuple.dst.u.udp.port;
-	} else if (ct->tuplehash[dir].tuple.dst.u3.ip == addr->ip &&
-		   ct->tuplehash[dir].tuple.dst.u.udp.port == port) {
+		if(ct->tuplehash[dir].tuple.src.u.udp.port == port)
+			newport = ct->tuplehash[!dir].tuple.dst.u.udp.port;
+		else
+			needexpect = 1;
+	} else if (ct->tuplehash[dir].tuple.dst.u3.ip == addr->ip) {
 		newaddr = ct->tuplehash[!dir].tuple.src.u3.ip;
-		newport = ct->tuplehash[!dir].tuple.src.u.udp.port;
+		if(ct->tuplehash[dir].tuple.dst.u.udp.port == port)
+			newport = ct->tuplehash[!dir].tuple.src.u.udp.port;
+		else
+			needexpect = 1;
 	} else
 		return 1;
+
+	/* support VIA port different with session source port */
+	if(needexpect)
+	{
+		struct nf_conntrack_expect *exp;
+		union nf_inet_addr daddr;
+
+		exp = nf_ct_expect_alloc(ct);
+		if (!exp)
+			return 1;
+
+		newport = port;
+		memset(&daddr, 0, sizeof(daddr));
+		daddr.ip = newaddr;
+
+		nf_ct_expect_init(exp, SIP_EXPECT_SIGNALLING, nf_ct_l3num(ct),
+				NULL, &daddr, IPPROTO_UDP, NULL, &newport);
+		exp->helper = nfct_help(ct)->helper;
+		exp->flags = NF_CT_EXPECT_PERMANENT;
+
+		exp->saved_ip = addr->ip;
+		exp->saved_proto.udp.port = port;
+		exp->dir = !dir;
+		exp->expectfn = nf_nat_follow_master;
+
+		while ( newport != 0 ) {
+			if (nf_ct_expect_related(exp) == 0)
+				break;
+
+			newport = htons(ntohs(newport) + 1);
+			exp->tuple.dst.u.udp.port = newport;
+		}
+
+		if (newport == 0)
+			return 1;
+	}
 
 	if (newaddr == addr->ip && newport == port)
 		return 1;
@@ -127,14 +168,12 @@ static unsigned int ip_nat_sip(struct sk_buff *skb,
 		char buffer[sizeof("nnn.nnn.nnn.nnn:nnnnn")];
 
 		/* We're only interested in headers related to this
-		 * connection */
+		 * host */
 		if (request) {
-			if (addr.ip != ct->tuplehash[dir].tuple.src.u3.ip ||
-			    port != ct->tuplehash[dir].tuple.src.u.udp.port)
+			if (addr.ip != ct->tuplehash[dir].tuple.src.u3.ip)
 				goto next;
 		} else {
-			if (addr.ip != ct->tuplehash[dir].tuple.dst.u3.ip ||
-			    port != ct->tuplehash[dir].tuple.dst.u.udp.port)
+			if (addr.ip != ct->tuplehash[dir].tuple.dst.u3.ip)
 				goto next;
 		}
 
@@ -419,6 +458,7 @@ static unsigned int ip_nat_sdp_media(struct sk_buff *skb,
 	struct nf_conn *ct = nf_ct_get(skb, &ctinfo);
 	enum ip_conntrack_dir dir = CTINFO2DIR(ctinfo);
 	u_int16_t port;
+	int portloop = 0;
 
 	/* Connection will come from reply */
 	if (ct->tuplehash[dir].tuple.src.u3.ip ==
@@ -441,7 +481,15 @@ static unsigned int ip_nat_sdp_media(struct sk_buff *skb,
 
 	/* Try to get same pair of ports: if not, try to change them. */
 	for (port = ntohs(rtp_exp->tuple.dst.u.udp.port);
-	     port != 0; port += 2) {
+		port != 0 || 0 == portloop; port += 2) {
+
+		/* support edge case port 65534/65535 */
+		if(0 == port)
+		{
+			portloop = 1;
+			port += 2;
+		}
+
 		rtp_exp->tuple.dst.u.udp.port = htons(port);
 		if (nf_ct_expect_related(rtp_exp) != 0)
 			continue;

@@ -1,4 +1,4 @@
-/* $Id: message.h,v 1.1.10.1 2001/09/23 22:24:59 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/sc/message.h#1 $
  *
  * Copyright (C) 1996  SpellCaster Telecommunications Inc.
  *

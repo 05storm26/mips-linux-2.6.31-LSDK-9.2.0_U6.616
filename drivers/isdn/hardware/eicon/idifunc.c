@@ -1,4 +1,4 @@
-/* $Id: idifunc.c,v 1.14.4.4 2004/08/28 20:03:53 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/idifunc.c#1 $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * User Mode IDI Interface 

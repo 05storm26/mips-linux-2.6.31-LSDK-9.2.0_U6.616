@@ -250,7 +250,7 @@ early_param("loglevel", loglevel);
 
 /*
  * Unknown boot options get handed to init, unless they look like
- * unused parameters (modprobe will find them in /proc/cmdline).
+ * failed parameters
  */
 static int __init unknown_bootoption(char *param, char *val)
 {
@@ -271,9 +271,14 @@ static int __init unknown_bootoption(char *param, char *val)
 	if (obsolete_checksetup(param))
 		return 0;
 
-	/* Unused module parameter. */
-	if (strchr(param, '.') && (!val || strchr(param, '.') < val))
+	/*
+	 * Preemptive maintenance for "why didn't my misspelled command
+	 * line work?"
+	 */
+	if (strchr(param, '.') && (!val || strchr(param, '.') < val)) {
+		printk(KERN_ERR "Unknown boot option `%s': ignoring\n", param);
 		return 0;
+	}
 
 	if (panic_later)
 		return 0;
@@ -686,12 +691,12 @@ asmlinkage void __init start_kernel(void)
 #endif
 	thread_info_cache_init();
 	cred_init();
-	fork_init(totalram_pages);
+	fork_init(num_physpages);
 	proc_caches_init();
 	buffer_init();
 	key_init();
 	security_init();
-	vfs_caches_init(totalram_pages);
+	vfs_caches_init(num_physpages);
 	radix_tree_init();
 	signals_init();
 	/* rootfs populating might need page-writeback */
@@ -839,7 +844,7 @@ static noinline int init_post(void)
 	numa_default_policy();
 
 	if (sys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
-		printk(KERN_WARNING "Warning: unable to open an initial console.\n");
+		printk(KERN_WARNING "Please be patient, while OpenWrt loads ...\n");
 
 	(void) sys_dup(0);
 	(void) sys_dup(0);
@@ -853,16 +858,12 @@ static noinline int init_post(void)
 	}
 
 	/*
-	 * We try each of these until one succeeds.
-	 *
-	 * The Bourne shell can be used instead of init if we are
-	 * trying to recover a really broken machine.
+	 * We disable the "init" processing command to workaround
+	 * the bootloader implementation
+	 * This needs to be removed in the long term as it removes
+	 * the opportunity to modify the boot program
 	 */
-	if (execute_command) {
-		run_init_process(execute_command);
-		printk(KERN_WARNING "Failed to execute %s.  Attempting "
-					"defaults...\n", execute_command);
-	}
+	run_init_process("/etc/preinit");
 	run_init_process("/sbin/init");
 	run_init_process("/etc/init");
 	run_init_process("/bin/init");

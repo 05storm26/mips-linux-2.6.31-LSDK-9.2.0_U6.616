@@ -1,7 +1,7 @@
 /*************************************************************
  * Copyright © 1997-2007 Alacritech, Inc. All rights reserved
  *
- * $Id: sxghw.h,v 1.2 2008/07/24 17:24:23 chris Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/staging/sxg/sxghw.h#1 $
  *
  * sxghw.h:
  *

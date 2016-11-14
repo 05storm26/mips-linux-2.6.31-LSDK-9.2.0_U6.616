@@ -1,4 +1,4 @@
-/* $Id: hscx_irq.c,v 1.18.2.3 2004/02/11 13:21:34 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/hscx_irq.c#1 $
  *
  * low level b-channel stuff for Siemens HSCX
  *

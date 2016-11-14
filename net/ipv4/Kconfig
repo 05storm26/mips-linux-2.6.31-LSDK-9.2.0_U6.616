@@ -1,6 +1,12 @@
 #
 # IP configuration
 #
+config TP_MULTICAST
+	bool "IP: tplink multicasting"
+	help
+	This is code for our TPLINK's own multicast.If you don't want to 
+	support IGMP SNOOPING, you'd better to say N.
+
 config IP_MULTICAST
 	bool "IP: multicasting"
 	help

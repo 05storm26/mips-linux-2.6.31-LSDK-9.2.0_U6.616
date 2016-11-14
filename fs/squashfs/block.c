@@ -32,12 +32,118 @@
 #include <linux/mutex.h>
 #include <linux/string.h>
 #include <linux/buffer_head.h>
-#include <linux/zlib.h>
+
+#include <crypto/compress.h>
 
 #include "squashfs_fs.h"
 #include "squashfs_fs_sb.h"
 #include "squashfs_fs_i.h"
 #include "squashfs.h"
+
+
+#ifdef CONFIG_SQUASHFS_MTD
+
+#define SQUASHFS_MTD_OFFSET(index, msblk)	(index * msblk->devblksize)
+#define SQUASHFS_BUF_FREE(buf)			kfree(buf)
+#define SQUASHFS_GET_BLK(s, index)		squashfs_getblk_mtd(s, (index))
+
+static int
+squashfs_mtd_read(
+	struct super_block	*s,
+	int			index,
+	size_t			*retlen,
+	u_char			*buf)
+{
+	struct squashfs_sb_info	*msblk = s->s_fs_info;
+	struct mtd_info		*mtd = msblk->mtd;
+	int			ret;
+	loff_t			off = SQUASHFS_MTD_OFFSET(index, msblk);
+
+	TRACE(	"%s(): issuing mtd from offset: %lld on mtd->index:%d "
+		"mtd->name:%s msblk=%p mtd=%p s=%p \n", __func__, off,
+		mtd->index, mtd->name, msblk, mtd, s);
+
+	ret = mtd->read(mtd, off, msblk->devblksize, retlen, buf);
+
+	TRACE(	"%s(): mtd->read result:%d retlen:0x%x\n",
+		__func__, ret, *retlen);
+
+	if (ret != 0) {
+		printk("%s(): mtd read failed err %d\n", __func__, ret);
+	}
+
+	return ret;
+}
+
+u_char *
+squashfs_getblk_mtd(struct super_block *s, int index)
+{
+	struct squashfs_sb_info	*msblk = s->s_fs_info;
+	u_char			*buf;
+	size_t			retlen;
+	int			ret;
+
+	buf = kmalloc(msblk->devblksize, GFP_KERNEL);
+
+	if (!buf) {
+		return NULL;
+	}
+
+	ret = squashfs_mtd_read(s, index, &retlen, buf);
+	if (ret != 0) {
+		return NULL;
+	}
+
+	return buf;
+}
+
+static u_char *
+get_block_length(
+	struct super_block	*sb,
+	u64			*cur_index,
+	int			*offset,
+	int			*length)
+{
+	struct squashfs_sb_info	*msblk = sb->s_fs_info;
+	int			ret;
+	size_t			retlen;
+	u_char			*buf;
+
+	buf = kmalloc(msblk->devblksize, GFP_KERNEL);
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	ret = squashfs_mtd_read(sb, *cur_index, &retlen, buf);
+	if (ret != 0) {
+		goto out;
+	}
+
+	if (msblk->devblksize - *offset == 1) {
+		*length = (unsigned char) buf[*offset];
+		ret = squashfs_mtd_read(sb, ++(*cur_index), &retlen, buf);
+		if (ret != 0) {
+			goto out;
+		}
+		*length |= (unsigned char) buf[0] << 8;
+		*offset = 1;
+	} else {
+		*length = (unsigned char) buf[*offset] |
+			(unsigned char) buf[*offset + 1] << 8;
+		*offset += 2;
+	}
+
+	return buf;
+
+out:
+	kfree(buf);
+	return NULL;
+}
+
+#else
+
+#define SQUASHFS_BUF_FREE(bh)		put_bh(bh)
+#define SQUASHFS_GET_BLK(s, index)	sb_getblk(s, index)
 
 /*
  * Read the metadata block length, this is stored in the first two
@@ -70,6 +176,8 @@ static struct buffer_head *get_block_length(struct super_block *sb,
 	return bh;
 }
 
+#endif	/* CONFIG_SQUASHFS_MTD */
+
 
 /*
  * Read and decompress a metadata block or datablock.  Length is non-zero
@@ -83,7 +191,11 @@ int squashfs_read_data(struct super_block *sb, void **buffer, u64 index,
 			int length, u64 *next_index, int srclength, int pages)
 {
 	struct squashfs_sb_info *msblk = sb->s_fs_info;
+#ifdef CONFIG_SQUASHFS_MTD
+	u_char **bh;
+#else
 	struct buffer_head **bh;
+#endif	/* CONFIG_SQUASHFS_MTD */
 	int offset = index & ((1 << msblk->devblksize_log2) - 1);
 	u64 cur_index = index >> msblk->devblksize_log2;
 	int bytes, compressed, b = 0, k = 0, page = 0, avail;
@@ -112,12 +224,14 @@ int squashfs_read_data(struct super_block *sb, void **buffer, u64 index,
 			goto read_failure;
 
 		for (b = 0; bytes < length; b++, cur_index++) {
-			bh[b] = sb_getblk(sb, cur_index);
+			bh[b] = SQUASHFS_GET_BLK(sb, cur_index);
 			if (bh[b] == NULL)
 				goto block_release;
 			bytes += msblk->devblksize;
 		}
+#if !defined(CONFIG_SQUASHFS_MTD)
 		ll_rw_block(READ, b, bh);
+#endif
 	} else {
 		/*
 		 * Metadata block.
@@ -144,16 +258,19 @@ int squashfs_read_data(struct super_block *sb, void **buffer, u64 index,
 			goto block_release;
 
 		for (; bytes < length; b++) {
-			bh[b] = sb_getblk(sb, ++cur_index);
+			bh[b] = SQUASHFS_GET_BLK(sb, ++cur_index);
 			if (bh[b] == NULL)
 				goto block_release;
 			bytes += msblk->devblksize;
 		}
+#if !defined(CONFIG_SQUASHFS_MTD)
 		ll_rw_block(READ, b - 1, bh + 1);
+#endif
 	}
 
 	if (compressed) {
-		int zlib_err = 0, zlib_init = 0;
+		int res = 0, decomp_init = 0;
+		struct comp_request req;
 
 		/*
 		 * Uncompress block.
@@ -161,76 +278,90 @@ int squashfs_read_data(struct super_block *sb, void **buffer, u64 index,
 
 		mutex_lock(&msblk->read_data_mutex);
 
-		msblk->stream.avail_out = 0;
-		msblk->stream.avail_in = 0;
+		req.avail_out = 0;
+		req.avail_in = 0;
 
 		bytes = length;
+		length = 0;
 		do {
-			if (msblk->stream.avail_in == 0 && k < b) {
+			if (req.avail_in == 0 && k < b) {
 				avail = min(bytes, msblk->devblksize - offset);
 				bytes -= avail;
+#if !defined(CONFIG_SQUASHFS_MTD)
 				wait_on_buffer(bh[k]);
 				if (!buffer_uptodate(bh[k]))
 					goto release_mutex;
+#endif /* CONFIG_SQUASHFS_MTD */
 
 				if (avail == 0) {
 					offset = 0;
-					put_bh(bh[k++]);
+					SQUASHFS_BUF_FREE(bh[k++]);
 					continue;
 				}
 
-				msblk->stream.next_in = bh[k]->b_data + offset;
-				msblk->stream.avail_in = avail;
+#ifdef CONFIG_SQUASHFS_MTD
+				req.next_in = bh[k] + offset;
+#else
+				req.next_in = bh[k]->b_data + offset;
+#endif
+				req.avail_in = avail;
 				offset = 0;
 			}
 
-			if (msblk->stream.avail_out == 0 && page < pages) {
-				msblk->stream.next_out = buffer[page++];
-				msblk->stream.avail_out = PAGE_CACHE_SIZE;
+			if (req.avail_out == 0 && page < pages) {
+				req.next_out = buffer[page++];
+				req.avail_out = PAGE_CACHE_SIZE;
 			}
-
-			if (!zlib_init) {
-				zlib_err = zlib_inflateInit(&msblk->stream);
-				if (zlib_err != Z_OK) {
-					ERROR("zlib_inflateInit returned"
-						" unexpected result 0x%x,"
-						" srclength %d\n", zlib_err,
-						srclength);
+			if (!decomp_init) {
+				res = crypto_decompress_init(msblk->tfm);
+				if (res) {
+					ERROR("crypto_decompress_init "
+						"returned %d, srclength %d\n",
+						res, srclength);
 					goto release_mutex;
 				}
-				zlib_init = 1;
+				decomp_init = 1;
 			}
 
-			zlib_err = zlib_inflate(&msblk->stream, Z_SYNC_FLUSH);
+			res = crypto_decompress_update(msblk->tfm, &req);
+			if (res < 0) {
+				ERROR("crypto_decompress_update returned %d, "
+					"data probably corrupt\n", res);
+				goto release_mutex;
+			}
+			length += res;
 
-			if (msblk->stream.avail_in == 0 && k < b)
-				put_bh(bh[k++]);
-		} while (zlib_err == Z_OK);
+			if (req.avail_in == 0 && k < b)
+				SQUASHFS_BUF_FREE(bh[k++]);
 
-		if (zlib_err != Z_STREAM_END) {
-			ERROR("zlib_inflate error, data probably corrupt\n");
+		} while (bytes || res);
+
+		res = crypto_decompress_final(msblk->tfm, &req);
+		if (res < 0) {
+			ERROR("crypto_decompress_final returned %d, data "
+				"probably corrupt\n", res);
 			goto release_mutex;
 		}
+		length += res;
 
-		zlib_err = zlib_inflateEnd(&msblk->stream);
-		if (zlib_err != Z_OK) {
-			ERROR("zlib_inflate error, data probably corrupt\n");
-			goto release_mutex;
-		}
-		length = msblk->stream.total_out;
 		mutex_unlock(&msblk->read_data_mutex);
 	} else {
 		/*
 		 * Block is uncompressed.
 		 */
+#ifdef CONFIG_SQUASHFS_MTD
+		int in, pg_offset = 0;
+#else
 		int i, in, pg_offset = 0;
+#endif
 
+#if !defined(CONFIG_SQUASHFS_MTD)
 		for (i = 0; i < b; i++) {
 			wait_on_buffer(bh[i]);
 			if (!buffer_uptodate(bh[i]))
 				goto block_release;
 		}
-
+#endif /* CONFIG_SQUASHFS_MTD */
 		for (bytes = length; k < b; k++) {
 			in = min(bytes, msblk->devblksize - offset);
 			bytes -= in;
@@ -241,14 +372,19 @@ int squashfs_read_data(struct super_block *sb, void **buffer, u64 index,
 				}
 				avail = min_t(int, in, PAGE_CACHE_SIZE -
 						pg_offset);
+#ifdef CONFIG_SQUASHFS_MTD
+				memcpy(buffer[page] + pg_offset,
+						bh[k] + offset, avail);
+#else
 				memcpy(buffer[page] + pg_offset,
 						bh[k]->b_data + offset, avail);
+#endif /* CONFIG_SQUASHFS_MTD */
 				in -= avail;
 				pg_offset += avail;
 				offset += avail;
 			}
 			offset = 0;
-			put_bh(bh[k]);
+			SQUASHFS_BUF_FREE(bh[k]);
 		}
 	}
 
@@ -260,7 +396,7 @@ release_mutex:
 
 block_release:
 	for (; k < b; k++)
-		put_bh(bh[k]);
+		SQUASHFS_BUF_FREE(bh[k]);
 
 read_failure:
 	ERROR("squashfs_read_data failed to read block 0x%llx\n",

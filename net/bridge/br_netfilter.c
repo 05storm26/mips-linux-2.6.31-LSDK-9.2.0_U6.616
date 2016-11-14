@@ -359,7 +359,7 @@ static int br_nf_pre_routing_finish(struct sk_buff *skb)
 				},
 				.proto = 0,
 			};
-			struct in_device *in_dev = __in_dev_get_rcu(dev);
+			struct in_device *in_dev = in_dev_get(dev);
 
 			/* If err equals -EHOSTUNREACH the error is due to a
 			 * martian destination or due to the fact that
@@ -707,9 +707,9 @@ static unsigned int br_nf_forward_ip(unsigned int hook, struct sk_buff *skb,
 	nf_bridge->mask |= BRNF_BRIDGED;
 	nf_bridge->physoutdev = skb->dev;
 
-	NF_HOOK(pf, NF_INET_FORWARD, skb, bridge_parent(in), parent,
-		br_nf_forward_finish);
-
+	//NF_HOOK(pf, NF_INET_FORWARD, skb, bridge_parent(in), parent,
+	//	br_nf_forward_finish);
+    br_nf_forward_finish(skb);
 	return NF_STOLEN;
 }
 

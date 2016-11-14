@@ -59,6 +59,9 @@
 #ifdef CONFIG_SYSCTL
 #include <linux/sysctl.h>
 #endif
+#ifdef CONFIG_MAPPING
+#include "proto_trans.h"
+#endif
 
 /* Set to 3 to get tracing. */
 #define RT6_DEBUG 2
@@ -709,7 +712,9 @@ static struct rt6_info *ip6_pol_route(struct net *net, struct fib6_table *table,
 	int attempts = 3;
 	int err;
 	int reachable = net->ipv6.devconf_all->forwarding ? 0 : RT6_LOOKUP_F_REACHABLE;
-
+#ifdef CONFIG_MAPPING
+	struct sk_buff *skb = fl->skb;
+#endif
 	strict |= flags & RT6_LOOKUP_F_IFACE;
 
 relookup:
@@ -721,6 +726,16 @@ restart_2:
 restart:
 	rt = rt6_select(fn, oif, strict | reachable);
 
+#ifdef CONFIG_MAPPING
+        if ((rt->rt6i_flags & RTF_MAPPING)) {
+               if (!ip6_mapping(skb))
+                       printk("Mapping6 Failed!\n");
+               dst_hold(&rt->u.dst);
+               read_unlock_bh(&table->tb6_lock);
+	       skb_dst_set(skb,NULL);
+               return rt;
+        }
+#endif
 	BACKTRACK(net, &fl->fl6_src);
 	if (rt == net->ipv6.ip6_null_entry ||
 	    rt->rt6i_flags & RTF_CACHE)
@@ -769,7 +784,12 @@ out:
 out2:
 	rt->u.dst.lastuse = jiffies;
 	rt->u.dst.__use++;
-
+#ifdef	CONFIG_MAPPING
+	if (rt->rt6i_flags & RTF_MAPPING)
+		rt->u.dst.mapping = 1;
+	else
+		rt->u.dst.mapping = 0;
+#endif
 	return rt;
 }
 
@@ -785,6 +805,9 @@ void ip6_route_input(struct sk_buff *skb)
 	struct net *net = dev_net(skb->dev);
 	int flags = RT6_LOOKUP_F_HAS_SADDR;
 	struct flowi fl = {
+#ifdef CONFIG_MAPPING
+		.skb = skb,
+#endif
 		.iif = skb->dev->ifindex,
 		.nl_u = {
 			.ip6_u = {
@@ -1281,6 +1304,12 @@ int ip6_route_add(struct fib6_config *cfg)
 	}
 
 	rt->rt6i_flags = cfg->fc_flags;
+#ifdef	CONFIG_MAPPING
+	if (rt->rt6i_flags&RTF_MAPPING)
+		rt->u.dst.mapping = 1;
+	else
+		rt->u.dst.mapping = 0;
+#endif
 
 install_route:
 	if (cfg->fc_mx) {

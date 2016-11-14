@@ -8,6 +8,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#include <linux/autoconf.h>
 #include <linux/cache.h>
 #include <linux/capability.h>
 #include <linux/skbuff.h>
@@ -59,6 +60,13 @@ do {								\
 #define IP_NF_ASSERT(x)
 #endif
 
+#ifdef CONFIG_ATHRS_HW_ACL
+
+athr_nf_acl_ops_t *athr_acl_sw_ops;
+EXPORT_SYMBOL(athr_acl_sw_ops);
+
+#endif
+
 #if 0
 /* All the better to debug you with... */
 #define static
@@ -86,6 +94,9 @@ ip_packet_match(const struct iphdr *ip,
 	unsigned long ret;
 
 #define FWINV(bool, invflg) ((bool) ^ !!(ipinfo->invflags & (invflg)))
+
+	if (ipinfo->flags & IPT_F_NO_DEF_MATCH)
+		return true;
 
 	if (FWINV((ip->saddr&ipinfo->smsk.s_addr) != ipinfo->src.s_addr,
 		  IPT_INV_SRCIP)
@@ -137,13 +148,35 @@ ip_packet_match(const struct iphdr *ip,
 		return false;
 	}
 
+#undef FWINV
 	return true;
 }
 
 static bool
-ip_checkentry(const struct ipt_ip *ip)
+ip_checkentry(struct ipt_ip *ip)
 {
-	if (ip->flags & ~IPT_F_MASK) {
+#define FWINV(bool, invflg) ((bool) || (ip->invflags & (invflg)))
+
+	if (FWINV(ip->smsk.s_addr, IPT_INV_SRCIP) ||
+		FWINV(ip->dmsk.s_addr, IPT_INV_DSTIP))
+		goto has_match_rules;
+
+	if (FWINV(!!((const unsigned long *)ip->iniface_mask)[0],
+		IPT_INV_VIA_IN) ||
+	    FWINV(!!((const unsigned long *)ip->outiface_mask)[0],
+		IPT_INV_VIA_OUT))
+		goto has_match_rules;
+
+	if (FWINV(ip->proto, IPT_INV_PROTO))
+		goto has_match_rules;
+
+	if (FWINV(ip->flags&IPT_F_FRAG, IPT_INV_FRAG))
+		goto has_match_rules;
+
+	ip->flags |= IPT_F_NO_DEF_MATCH;
+
+has_match_rules:
+	if (ip->flags & ~(IPT_F_MASK|IPT_F_NO_DEF_MATCH)) {
 		duprintf("Unknown flag bits set: %08X\n",
 			 ip->flags & ~IPT_F_MASK);
 		return false;
@@ -153,6 +186,8 @@ ip_checkentry(const struct ipt_ip *ip)
 			 ip->invflags & ~IPT_INV_MASK);
 		return false;
 	}
+
+#undef FWINV
 	return true;
 }
 
@@ -200,7 +235,6 @@ unconditional(const struct ipt_ip *ip)
 			return 0;
 
 	return 1;
-#undef FWINV
 }
 
 #if defined(CONFIG_NETFILTER_XT_TARGET_TRACE) || \
@@ -326,8 +360,49 @@ ipt_do_table(struct sk_buff *skb,
 	struct xt_match_param mtpar;
 	struct xt_target_param tgpar;
 
-	/* Initialization */
+        /*
+         * To bypass netfilter nat processing, a check is already done in the nat
+         * netfilter hooks, so the check below is only for netfilter firewall.
+         * ipt_do_table is called from all three NF modules (NF_FILTER, NF_MANGLE, NF_RAW)
+         * In case if s/w mangle is allowed, then this check should be
+         * move to firewall/raw netfilter hook functions.
+         */
+#ifdef CONFIG_ATHRS_HW_NAT
+        if ((skb->ath_hw_nat_fw_flags == 2 ||
+            skb->ath_hw_nat_fw_flags == 3) &&
+            (0 == strncmp(table->name,"nat",3))) {
+                return NF_ACCEPT;
+        }
+#endif
+#ifdef CONFIG_ATHRS_HW_ACL
+        if (skb->ath_hw_nat_fw_flags == 3 &&
+            (0 == strncmp(table->name,"filter",6))) {
+                return NF_ACCEPT;
+        }
+#endif
+
 	ip = ip_hdr(skb);
+
+	IP_NF_ASSERT(table->valid_hooks & (1 << hook));
+	xt_info_rdlock_bh();
+	private = table->private;
+	table_base = private->entries[smp_processor_id()];
+	e = get_entry(table_base, private->hook_entry[hook]);
+
+	if (e->target_offset <= sizeof(struct ipt_entry) &&
+		(e->ip.flags & IPT_F_NO_DEF_MATCH)) {
+			struct ipt_entry_target *t = ipt_get_target(e);
+			if (!t->u.kernel.target->target) {
+				int v = ((struct ipt_standard_target *)t)->verdict;
+				if ((v < 0) && (v != IPT_RETURN)) {
+					ADD_COUNTER(e->counters, ntohs(ip->tot_len), 1);
+					xt_info_rdunlock_bh();
+					return (unsigned)(-v) - 1;
+				}
+			}
+	}
+
+	/* Initialization */
 	datalen = skb->len - ip->ihl * 4;
 	indev = in ? in->name : nulldevname;
 	outdev = out ? out->name : nulldevname;
@@ -344,13 +419,6 @@ ipt_do_table(struct sk_buff *skb,
 	mtpar.out     = tgpar.out = out;
 	mtpar.family  = tgpar.family = NFPROTO_IPV4;
 	mtpar.hooknum = tgpar.hooknum = hook;
-
-	IP_NF_ASSERT(table->valid_hooks & (1 << hook));
-	xt_info_rdlock_bh();
-	private = table->private;
-	table_base = private->entries[smp_processor_id()];
-
-	e = get_entry(table_base, private->hook_entry[hook]);
 
 	/* For return from builtin chain */
 	back = get_entry(table_base, private->underflow[hook]);
@@ -706,7 +774,6 @@ find_check_entry(struct ipt_entry *e, const char *name, unsigned int size,
 	ret = check_target(e, name);
 	if (ret)
 		goto err;
-
 	(*i)++;
 	return 0;
  err:
@@ -781,6 +848,7 @@ cleanup_entry(struct ipt_entry *e, unsigned int *i)
 	return 0;
 }
 
+
 /* Checks and translates the user-supplied table segment (held in
    newinfo) */
 static int
@@ -795,6 +863,9 @@ translate_table(const char *name,
 {
 	unsigned int i;
 	int ret;
+#ifdef CONFIG_ATHRS_HW_ACL
+        void (*athr_parse_iptables)(void *, unsigned int, char *);
+#endif
 
 	newinfo->size = size;
 	newinfo->number = number;
@@ -859,6 +930,14 @@ translate_table(const char *name,
 		if (newinfo->entries[i] && newinfo->entries[i] != entry0)
 			memcpy(newinfo->entries[i], entry0, newinfo->size);
 	}
+
+#ifdef CONFIG_ATHRS_HW_ACL
+        if (athr_acl_sw_ops) {
+                athr_parse_iptables = rcu_dereference(athr_acl_sw_ops->nf_parse_tables);
+                if (athr_parse_iptables)
+                        athr_parse_iptables(entry0, newinfo->size, (char *)name);
+        }
+#endif
 
 	return ret;
 }
@@ -957,6 +1036,7 @@ copy_entries_to_user(unsigned int total_size,
 	const struct xt_table_info *private = table->private;
 	int ret = 0;
 	const void *loc_cpu_entry;
+        u8 flags;
 
 	counters = alloc_counters(table);
 	if (IS_ERR(counters))
@@ -984,6 +1064,14 @@ copy_entries_to_user(unsigned int total_size,
 				 + offsetof(struct ipt_entry, counters),
 				 &counters[num],
 				 sizeof(counters[num])) != 0) {
+			ret = -EFAULT;
+			goto free_counters;
+		}
+
+		flags = e->ip.flags & ~IPT_F_NO_DEF_MATCH;
+		if (copy_to_user(userptr + off
+				 + offsetof(struct ipt_entry, ip.flags),
+				 &flags, sizeof(flags)) != 0) {
 			ret = -EFAULT;
 			goto free_counters;
 		}

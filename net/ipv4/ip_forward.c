@@ -75,11 +75,32 @@ int ip_forward(struct sk_buff *skb)
 	 *	that reaches zero, we must reply an ICMP control message telling
 	 *	that the packet's lifetime expired.
 	 */
-	if (ip_hdr(skb)->ttl <= 1)
-		goto too_many_hops;
 
+	/* ZJin101129, do forward wan2lan pkts whos ttl <=1 */	
+	#define RECOVER_TTL		(128)
+	
+	if (ip_hdr(skb)->ttl <= 1)
+	{
+		
+		if (strncmp(skb->dev->name, "br", 2))
+		{
+
+			ip_hdr(skb)->ttl = RECOVER_TTL;	/* set ttl back to 128 */
+
+			/* re calc csum. */
+			ip_hdr(skb)->check = 0;
+			ip_hdr(skb)->check = ip_fast_csum((u8 *)(ip_hdr(skb)), ip_hdr(skb)->ihl);
+		}
+		else
+		{
+		goto too_many_hops;
+		}
+	}
+
+#ifndef	CONFIG_MAPPING
 	if (!xfrm4_route_forward(skb))
 		goto drop;
+#endif
 
 	rt = skb_rtable(skb);
 

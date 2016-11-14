@@ -1,4 +1,4 @@
-/* $Id: c4.c,v 1.1.2.2 2004/01/16 21:09:27 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/avm/c4.c#1 $
  * 
  * Module for AVM C4 & C2 card.
  * 
@@ -33,7 +33,7 @@
 
 /* ------------------------------------------------------------- */
 
-static char *revision = "$Revision: 1.1.2.2 $";
+static char *revision = "$Revision: #1 $";
 
 /* ------------------------------------------------------------- */
 

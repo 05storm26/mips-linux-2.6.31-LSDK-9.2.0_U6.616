@@ -778,7 +778,7 @@ int __init gether_setup(struct usb_gadget *g, u8 ethaddr[ETH_ALEN])
 	netif_carrier_off(net);
 
 	dev->gadget = g;
-	SET_NETDEV_DEV(net, &g->dev);
+//	SET_NETDEV_DEV(net, &g->dev);
 
 	status = register_netdev(net);
 	if (status < 0) {

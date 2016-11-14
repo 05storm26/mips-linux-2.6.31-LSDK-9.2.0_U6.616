@@ -2,7 +2,7 @@
  *
  * Copyright © 2000-2008 Alacritech, Inc.  All rights reserved.
  *
- * $Id: sxgdbg.h,v 1.1 2008/06/27 12:49:28 mook Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/staging/sxg/sxgdbg.h#1 $
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

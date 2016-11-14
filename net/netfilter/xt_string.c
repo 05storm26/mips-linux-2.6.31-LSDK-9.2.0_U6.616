@@ -24,18 +24,29 @@ MODULE_ALIAS("ip6t_string");
 static bool
 string_mt(const struct sk_buff *skb, const struct xt_match_param *par)
 {
+	int i;	/* compare every string which iptables give in. */
+	int second_ret = 0;
+	
 	const struct xt_string_info *conf = par->matchinfo;
 	struct ts_state state;
 	int invert;
 
-	memset(&state, 0, sizeof(struct ts_state));
-
 	invert = (par->match->revision == 0 ? conf->u.v0.invert :
 				    conf->u.v1.flags & XT_STRING_FLAG_INVERT);
 
-	return (skb_find_text((struct sk_buff *)skb, conf->from_offset,
-			     conf->to_offset, conf->config, &state)
-			     != UINT_MAX) ^ invert;
+	for (i = 0; i < conf->string_count; ++i)
+	{
+	memset(&state, 0, sizeof(struct ts_state));
+
+		second_ret = (skb_find_text((struct sk_buff *)skb, conf->from_offset,
+			     	conf->to_offset, conf->config[i], &state)
+			     	!= UINT_MAX);
+
+		if (second_ret == 1)
+			break;
+	}
+
+	return  second_ret ^ invert;
 }
 
 #define STRING_TEXT_PRIV(m) ((struct xt_string_info *)(m))
@@ -46,13 +57,19 @@ static bool string_mt_check(const struct xt_mtchk_param *par)
 	struct ts_config *ts_conf;
 	int flags = TS_AUTOLOAD;
 
+	int i;
+
 	/* Damn, can't handle this case properly with iptables... */
 	if (conf->from_offset > conf->to_offset)
 		return false;
 	if (conf->algo[XT_STRING_MAX_ALGO_NAME_SIZE - 1] != '\0')
 		return false;
-	if (conf->patlen > XT_STRING_MAX_PATTERN_SIZE)
+
+	for (i=0; i < conf->string_count; ++i)
+	{
+		if (conf->patlen[i] > XT_STRING_MAX_PATTERN_SIZE)
 		return false;
+		
 	if (par->match->revision == 1) {
 		if (conf->u.v1.flags &
 		    ~(XT_STRING_FLAG_IGNORECASE | XT_STRING_FLAG_INVERT))
@@ -60,19 +77,25 @@ static bool string_mt_check(const struct xt_mtchk_param *par)
 		if (conf->u.v1.flags & XT_STRING_FLAG_IGNORECASE)
 			flags |= TS_IGNORECASE;
 	}
-	ts_conf = textsearch_prepare(conf->algo, conf->pattern, conf->patlen,
+		ts_conf = textsearch_prepare(conf->algo, conf->pattern[i], conf->patlen[i],
 				     GFP_KERNEL, flags);
 	if (IS_ERR(ts_conf))
 		return false;
 
-	conf->config = ts_conf;
+		conf->config[i] = ts_conf;
+	}
 
 	return true;
 }
 
 static void string_mt_destroy(const struct xt_mtdtor_param *par)
 {
-	textsearch_destroy(STRING_TEXT_PRIV(par->matchinfo)->config);
+	int i;
+	
+	for (i = 0; i<(STRING_TEXT_PRIV(par->matchinfo))->string_count; ++i)
+	{
+		textsearch_destroy(STRING_TEXT_PRIV(par->matchinfo)->config[i]);
+	}
 }
 
 static struct xt_match xt_string_mt_reg[] __read_mostly = {

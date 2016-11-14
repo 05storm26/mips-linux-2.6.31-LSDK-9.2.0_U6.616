@@ -152,9 +152,14 @@ static int ct_seq_show(struct seq_file *s, void *v)
 	if (seq_printf(s, "secmark=%u ", ct->secmark))
 		goto release;
 #endif
-
-	if (seq_printf(s, "use=%u\n", atomic_read(&ct->ct_general.use)))
+	if (seq_printf(s, "use=%u", atomic_read(&ct->ct_general.use)))
 		goto release;
+
+
+        if (seq_printf(s, "\n"))
+                goto release;
+
+
 	ret = 0;
 release:
 	nf_ct_put(ct);

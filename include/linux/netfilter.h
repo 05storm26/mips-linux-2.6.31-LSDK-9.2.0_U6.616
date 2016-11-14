@@ -166,6 +166,10 @@ static inline int nf_hook_thresh(u_int8_t pf, unsigned int hook,
 				 int (*okfn)(struct sk_buff *), int thresh,
 				 int cond)
 {
+#ifdef CONFIG_ATH_HW_NAT
+        if (skb->ath_hw_nat_fw_flags)
+                return 1;
+#endif
 	if (!cond)
 		return 1;
 #ifndef CONFIG_NETFILTER_DEBUG
@@ -181,7 +185,7 @@ static inline int nf_hook(u_int8_t pf, unsigned int hook, struct sk_buff *skb,
 {
 	return nf_hook_thresh(pf, hook, skb, indev, outdev, okfn, INT_MIN, 1);
 }
-                   
+
 /* Activate hook; either okfn or kfree_skb called, unless a hook
    returns NF_STOLEN (in which case, it's up to the hook to deal with
    the consequences).

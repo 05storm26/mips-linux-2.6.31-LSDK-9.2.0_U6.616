@@ -55,9 +55,9 @@
 
                 $RCSfile: TimerHighReskX86.c,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.4 $  $Date: 2008/04/17 21:38:01 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

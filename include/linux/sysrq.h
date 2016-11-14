@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  *
- *	$Id: sysrq.h,v 1.3 1997/07/17 11:54:33 mj Exp $
+ *	$Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/sysrq.h#1 $
  *
  *	Linux Magic System Request Key Hacks
  *

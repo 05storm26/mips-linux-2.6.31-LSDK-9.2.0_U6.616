@@ -54,6 +54,9 @@
 #include <net/xfrm.h>
 #include <net/checksum.h>
 #include <linux/mroute6.h>
+#ifdef	CONFIG_MAPPING
+#include "proto_trans.h"
+#endif
 
 static int ip6_fragment(struct sk_buff *skb, int (*output)(struct sk_buff *));
 
@@ -177,6 +180,16 @@ static inline int ip6_skb_dst_mtu(struct sk_buff *skb)
 
 int ip6_output(struct sk_buff *skb)
 {
+#ifdef CONFIG_MAPPING
+       struct dst_entry *rt = skb_dst(skb);
+       if (rt->mapping) {
+               if (!ip6_mapping(skb))
+                       printk("Mapping6 Failed!\n");
+               kfree_skb(skb);
+               return 0;
+       }
+#endif
+
 	struct inet6_dev *idev = ip6_dst_idev(skb_dst(skb));
 	if (unlikely(idev->cnf.disable_ipv6)) {
 		IP6_INC_STATS(dev_net(skb_dst(skb)->dev), idev,

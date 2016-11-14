@@ -8,7 +8,7 @@
  * Contributors:
  *	Wang Zhenyu at intel.com
  *
- * $Id: edac_i82875p.c,v 1.5.2.11 2005/10/05 00:43:44 dsp_llnl Exp $
+ * $Id: //depot/sw/branches/NewmaStaging/linux/kernels/mips-linux-2.6.31/drivers/edac/i82875p_edac.c#1 $
  *
  * Note: E7210 appears same as D82875P - zhenyu.z.wang at intel.com
  */

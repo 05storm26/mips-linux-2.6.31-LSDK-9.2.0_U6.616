@@ -3,7 +3,7 @@
 /*
  * Definitions for tcp compression routines.
  *
- * $Header: slcompress.h,v 1.10 89/12/31 08:53:02 van Exp $
+ * $Header: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/net/slhc_vj.h#1 $
  *
  * Copyright (c) 1989 Regents of the University of California.
  * All rights reserved.

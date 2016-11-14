@@ -1,4 +1,4 @@
-/* $Id: elsa.c,v 2.32.2.4 2004/01/24 20:47:21 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/elsa.c#1 $
  *
  * low level stuff for Elsa isdn cards
  *
@@ -30,7 +30,7 @@
 #include <linux/serial.h>
 #include <linux/serial_reg.h>
 
-static const char *Elsa_revision = "$Revision: 2.32.2.4 $";
+static const char *Elsa_revision = "$Revision: #1 $";
 static const char *Elsa_Types[] =
 {"None", "PC", "PCC-8", "PCC-16", "PCF", "PCF-Pro",
  "PCMCIA", "QS 1000", "QS 3000", "Microlink PCI", "QS 3000 PCI", 

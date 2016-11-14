@@ -1,7 +1,7 @@
 /*
  * Copyright ? 1997-2008 Alacritech, Inc. All rights reserved
  *
- * $Id: sxgphycode.h,v 1.2 2008/10/02 01:44:07 Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/staging/sxg/sxgphycode-1.2.h#1 $
  *
  * sxgphycode.h:
  *

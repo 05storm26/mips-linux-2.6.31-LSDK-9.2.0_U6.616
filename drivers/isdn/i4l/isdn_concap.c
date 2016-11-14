@@ -1,4 +1,4 @@
-/* $Id: isdn_concap.c,v 1.1.2.2 2004/01/12 22:37:19 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/i4l/isdn_concap.c#1 $
  * 
  * Linux ISDN subsystem, protocol encapsulation
  *

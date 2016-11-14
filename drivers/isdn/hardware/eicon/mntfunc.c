@@ -1,4 +1,4 @@
-/* $Id: mntfunc.c,v 1.19.6.4 2005/01/31 12:22:20 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/mntfunc.c#1 $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * Maint module

@@ -115,7 +115,9 @@ struct nf_conn {
 #ifdef CONFIG_NF_CONNTRACK_SECMARK
 	u_int32_t secmark;
 #endif
-
+#ifdef CONFIG_ATHRS_HW_NAT
+        void *hwnat_priv;
+#endif
 	/* Storage reserved for other modules: */
 	union nf_conntrack_proto proto;
 
@@ -123,6 +125,9 @@ struct nf_conn {
 	struct nf_ct_ext *ext;
 #ifdef CONFIG_NET_NS
 	struct net *ct_net;
+#endif
+#ifdef CONFIG_ATHRS17_HNAT
+        atomic_t in_hnat;
 #endif
 };
 
@@ -200,6 +205,24 @@ extern void nf_ct_free_hashtable(void *hash, int vmalloced, unsigned int size);
 extern struct nf_conntrack_tuple_hash *
 __nf_conntrack_find(struct net *net, const struct nf_conntrack_tuple *tuple);
 
+#ifdef CONFIG_ATHRS_HW_NAT
+
+typedef struct {
+    void                (*nf_process_nat)      (struct sk_buff *skb, struct nf_conn *ct,
+                                                enum ip_conntrack_info ctinfo, u_int8_t protonum);
+    struct nf_conn *    (*nf_find_get)         (struct net *net, struct nf_conntrack_tuple *tuple,
+                                                __u32 flag, struct nf_conntrack_tuple_hash **h);
+    void                (*get_wan_ipaddr)      (uint32_t *wan_ip,uint8_t index);
+    void                (*nf_alter_port)       (struct nf_conntrack_tuple, struct nf_conntrack_tuple,
+                                                struct nf_conn *ct);
+    int                 (*nf_tuple_taken)      (const struct nf_conntrack_tuple *, const struct nf_conn *ct);
+    void                (*check_layer2if)      (struct sk_buff *skb, struct nf_conn *ct,
+                                                int  nf_nat_manip_type );
+} athr_nf_nat_ops_t;
+
+extern athr_nf_nat_ops_t *athr_nat_sw_ops;
+#endif
+
 extern void nf_conntrack_hash_insert(struct nf_conn *ct);
 extern void nf_ct_delete_from_lists(struct nf_conn *ct);
 extern void nf_ct_insert_dying_list(struct nf_conn *ct);
@@ -255,9 +278,11 @@ static inline bool nf_ct_kill(struct nf_conn *ct)
 }
 
 /* These are for NAT.  Icky. */
-extern s16 (*nf_ct_nat_offset)(const struct nf_conn *ct,
-			       enum ip_conntrack_dir dir,
-			       u32 seq);
+/* Update TCP window tracking data when NAT mangles the packet */
+extern void nf_conntrack_tcp_update(const struct sk_buff *skb,
+				    unsigned int dataoff,
+				    struct nf_conn *ct, int dir,
+				    s16 offset);
 
 /* Fake conntrack entry for untracked connections */
 extern struct nf_conn nf_conntrack_untracked;
@@ -291,6 +316,20 @@ static inline int nf_ct_is_untracked(const struct sk_buff *skb)
 extern int nf_conntrack_set_hashsize(const char *val, struct kernel_param *kp);
 extern unsigned int nf_conntrack_htable_size;
 extern unsigned int nf_conntrack_max;
+
+#ifdef CONFIG_ATHRS17_HNAT
+/* For Atheros S17 HNAT */
+#define ATHRS17_MAC_LEN		13	// 12+1
+#define ATHRS17_PEER_IP_LEN	9	// 8+1
+extern int nf_athrs17_hnat;
+extern int nf_athrs17_hnat_wan_type;
+extern int nf_athrs17_hnat_ppp_id;
+extern unsigned int nf_athrs17_hnat_napt_no;
+extern int nf_athrs17_hnat_udp_thresh;
+extern unsigned char nf_athrs17_hnat_ppp_peer_ip[ATHRS17_PEER_IP_LEN];
+extern unsigned char nf_athrs17_hnat_ppp_peer_mac[ATHRS17_MAC_LEN];
+extern unsigned char nf_athrs17_hnat_wan_mac[ATHRS17_MAC_LEN];
+#endif
 
 #define NF_CT_STAT_INC(net, count)	\
 	(per_cpu_ptr((net)->ct.stat, raw_smp_processor_id())->count++)

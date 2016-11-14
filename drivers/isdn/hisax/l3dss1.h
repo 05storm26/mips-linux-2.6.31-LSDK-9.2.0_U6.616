@@ -1,4 +1,4 @@
-/* $Id: l3dss1.h,v 1.10.6.2 2001/09/23 22:24:50 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/l3dss1.h#1 $
  *
  * DSS1 (Euro) D-channel protocol defines
  *

@@ -1,7 +1,7 @@
 /*
  * hfc_usb.h
  *
- * $Id: hfc_usb.h,v 1.1.2.5 2007/08/20 14:36:03 mbachem Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/hfc_usb.h#1 $
  */
 
 #ifndef __HFC_USB_H__

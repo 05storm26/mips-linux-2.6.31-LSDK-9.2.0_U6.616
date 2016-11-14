@@ -72,6 +72,7 @@ if hgid=`hg id 2>/dev/null`; then
 	exit
 fi
 
+<<disable_svn_version
 # Check for svn and a svn repo.
 if rev=`svn info 2>/dev/null | grep '^Last Changed Rev'`; then
 	rev=`echo $rev | awk '{print $NF}'`
@@ -80,3 +81,4 @@ if rev=`svn info 2>/dev/null | grep '^Last Changed Rev'`; then
 	# All done with svn
 	exit
 fi
+diisable_svn_version

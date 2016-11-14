@@ -452,4 +452,11 @@ config MTD_NAND_SOCRATES
 	help
 	  Enables support for NAND Flash chips wired onto Socrates board.
 
+config MTD_NAND_ATH
+	tristate "Support for NAND on Atheros board"
+	default n
+	depends on MTD_NAND && (MACH_AR934x || MACH_QCA955x)
+	help
+	  Enables support for NAND Flash chip on Atheros board.
+
 endif # MTD_NAND

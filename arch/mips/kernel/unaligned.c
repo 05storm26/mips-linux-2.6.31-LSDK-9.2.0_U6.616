@@ -145,6 +145,77 @@ static void emulate_load_store_insn(struct pt_regs *regs,
 	case sb_op:
 		goto sigbus;
 
+    /* 
+     * DSP instructions
+     */
+    case spec3_op:
+		switch (insn.sp3_format.sp3_opcode) {
+		case lxx_op:
+			switch (insn.lx_format.lx_opcode) {
+			case lwx_op:{
+				unsigned int dest = 0;
+				unsigned char *base  = (unsigned char *)(regs->regs[insn.lx_format.base]);
+				unsigned int index   = regs->regs[insn.lx_format.index];
+#ifdef __BIG_ENDIAN
+				dest |= base[index + 0] << 24;
+				dest |= base[index + 1] << 16;
+				dest |= base[index + 2] <<  8;
+				dest |= base[index + 3] <<  0;
+#endif
+#ifdef __LITTLE_ENDIAN
+				dest |= base[index + 3] << 24;
+				dest |= base[index + 2] << 16;
+				dest |= base[index + 1] <<  8;
+				dest |= base[index + 0] <<  0;
+#endif
+				regs->regs[insn.lx_format.rd] = dest;
+			}
+				compute_return_epc(regs);
+				break;
+				
+			case lhx_op:{
+				unsigned int dest = 0;
+				unsigned char *base  = (unsigned char *)(regs->regs[insn.lx_format.base]);
+				unsigned int index   = regs->regs[insn.lx_format.index];
+#ifdef __BIG_ENDIAN
+				dest |= base[index + 0] <<  8;
+				dest |= base[index + 1] <<  0;
+#endif
+#ifdef __LITTLE_ENDIAN
+				dest |= base[index + 1] <<  8;
+				dest |= base[index + 0] <<  0;
+#endif
+				regs->regs[insn.lx_format.rd] = dest;
+			}
+			
+				compute_return_epc(regs);
+				break;
+			case lbux_op: /*--- 8 Bit zugriffe kÃ¶nnen nicht analigned sein ---*/
+			default:
+				printk(KERN_ERR "[%s] opcode group LX found, unknown element 0x%x.\n", __FUNCTION__, insn.lx_format.lx_opcode);
+				goto sigbus;
+			}
+			
+			break;
+		case ext_op:
+		case dextm_op:
+		case dextu_op:
+		case dext_op:
+		case ins_op:
+		case dinsm_op:
+		case dinsu_op:
+		case dins_op:
+		case insv_op:
+		case adduqb_op:
+		case bshfl_op:
+		case dbshfl_op:
+		case extrwph_op:
+		case rdhwr_op:
+		default:
+			goto sigbus;
+        }
+        break;
+		
 	/*
 	 * The remaining opcodes are the ones that are really of interest.
 	 */

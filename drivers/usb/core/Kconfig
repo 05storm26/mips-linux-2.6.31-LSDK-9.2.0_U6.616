@@ -9,6 +9,15 @@ config USB_DEBUG
 	  of debug messages to the system log. Select this if you are having a
 	  problem with USB support and want to see more of what is going on.
 
+config USB_WARNING_WAR
+    bool "USB warning messages"
+    depends on USB
+    help
+     Say Y if your host side USB need to support USB-IF Embedded Host 
+     Compliance Plan section C.2 Interoperability 3.a and 4.a items.
+     Which will support the corresponding messages when plug-in 
+     unsupported USB device or attach too many USB hubs.
+
 config USB_ANNOUNCE_NEW_DEVICES
 	bool "USB announce new devices"
 	depends on USB

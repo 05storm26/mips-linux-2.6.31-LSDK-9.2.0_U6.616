@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2004/12/13 12:21:51 starvik Exp $
+# $Id: //depot/sw/releases/9.5.1/linux/kernels/mips-linux-2.6.31/arch/cris/arch-v10/kernel/Makefile#1 $
 #
 # Makefile for the linux kernel.
 #

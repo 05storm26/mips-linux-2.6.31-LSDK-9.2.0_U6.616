@@ -1151,6 +1151,13 @@ static void ndisc_router_discovery(struct sk_buff *skb)
 			   skb->dev->name);
 		return;
 	}
+
+	/*ignore RA from myself*/
+	if(ipv6_chk_addr(dev_net(skb->dev), &ipv6_hdr(skb)->saddr, NULL, 0)){
+		in6_dev_put(in6_dev);
+		return;
+	}
+
 	if (in6_dev->cnf.forwarding || !in6_dev->cnf.accept_ra) {
 		in6_dev_put(in6_dev);
 		return;

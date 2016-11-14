@@ -1,4 +1,4 @@
-/* $Id: divasfunc.c,v 1.23.4.2 2004/08/28 20:03:53 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/divasfunc.c#1 $
  *
  * Low level driver for Eicon DIVA Server ISDN cards.
  *

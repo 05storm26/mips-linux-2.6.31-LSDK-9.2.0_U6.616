@@ -11,7 +11,7 @@
  *      of the GNU General Public License, incorporated herein by reference.
  *
  *
- * 	$Id: xircom_cb.c,v 1.33 2001/03/19 14:02:07 arjanv Exp $
+ * 	$Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/tulip/xircom_cb.c#1 $
  */
 
 #include <linux/module.h>

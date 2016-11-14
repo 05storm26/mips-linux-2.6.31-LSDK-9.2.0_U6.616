@@ -1,4 +1,4 @@
-/* $Id: hysdn_procconf.c,v 1.8.6.4 2001/09/23 22:24:54 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hysdn/hysdn_procconf.c#1 $
  *
  * Linux driver for HYSDN cards, /proc/net filesystem dir and conf functions.
  *
@@ -20,7 +20,7 @@
 
 #include "hysdn_defs.h"
 
-static char *hysdn_procconf_revision = "$Revision: 1.8.6.4 $";
+static char *hysdn_procconf_revision = "$Revision: #1 $";
 
 #define INFO_OUT_LEN 80		/* length of info line including lf */
 

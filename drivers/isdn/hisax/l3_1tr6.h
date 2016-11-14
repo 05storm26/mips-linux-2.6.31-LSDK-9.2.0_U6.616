@@ -1,4 +1,4 @@
-/* $Id: l3_1tr6.h,v 2.2.6.2 2001/09/23 22:24:49 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/l3_1tr6.h#1 $
  *
  * German 1TR6 D-channel protocol defines
  *

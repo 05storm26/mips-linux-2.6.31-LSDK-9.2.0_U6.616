@@ -1,4 +1,4 @@
-/* $Id: capiutil.c,v 1.13.6.4 2001/09/23 22:24:33 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/capi/capiutil.c#1 $
  *
  * CAPI 2.0 convert capi message to capi message struct
  *

@@ -8,7 +8,7 @@
  *     last modfied: Mon Apr 11 16:06:34 2005
  * 
  *   by /n/asic/design/tools/rdesc/src/rdes2c --outfile bif_slave_defs.h ../../inst/bif/rtl/bif_slave_regs.r
- *      id: $Id: bif_slave_defs.h,v 1.1 2007/02/13 11:55:30 starvik Exp $
+ *      id: $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/arch-v32/mach-fs/mach/hwregs/bif_slave_defs.h#1 $
  * Any changes here will be lost.
  *
  * -*- buffer-read-only: t -*-

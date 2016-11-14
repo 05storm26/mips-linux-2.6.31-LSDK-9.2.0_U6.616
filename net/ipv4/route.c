@@ -107,6 +107,16 @@
 #ifdef CONFIG_SYSCTL
 #include <linux/sysctl.h>
 #endif
+#ifdef CONFIG_MAPPING
+#include "proto_trans.h"
+#endif
+
+#ifdef CONFIG_TP_MULTICAST
+#include <linux/tp_mroute.h>
+
+/* added by HouXB, 03Dec10 */
+#define  LOCAL_MCAST ipv4_is_local_multicast
+#endif
 
 #define RT_FL_TOS(oldflp) \
     ((u32)(oldflp->fl4_tos & (IPTOS_RT_MASK | RTO_ONLINK)))
@@ -1876,7 +1886,15 @@ static int ip_route_input_mc(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 #endif
 	rth->rt_iif	=
 	rth->fl.iif	= dev->ifindex;
+	
+	
+#ifdef CONFIG_TP_MULTICAST
+    rth->u.dst.dev = dev;
+#else
 	rth->u.dst.dev	= init_net.loopback_dev;
+	/* rth->u.dst.dev	= &loopback_dev; */
+#endif 
+
 	dev_hold(rth->u.dst.dev);
 	rth->idev	= in_dev_get(rth->u.dst.dev);
 	rth->fl.oif	= 0;
@@ -1893,6 +1911,11 @@ static int ip_route_input_mc(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 #ifdef CONFIG_IP_MROUTE
 	if (!ipv4_is_local_multicast(daddr) && IN_DEV_MFORWARD(in_dev))
 		rth->u.dst.input = ip_mr_input;
+#endif
+
+#ifdef CONFIG_TP_MULTICAST
+    if (!our)
+        rth->u.dst.input = tp_mr_classify;
 #endif
 	RT_CACHE_STAT_INC(in_slow_mc);
 
@@ -1964,6 +1987,7 @@ static int __mkroute_input(struct sk_buff *skb,
 	}
 
 
+#ifndef	CONFIG_MAPPING
 	err = fib_validate_source(saddr, daddr, tos, FIB_RES_OIF(*res),
 				  in_dev->dev, &spec_dst, &itag);
 	if (err < 0) {
@@ -1976,7 +2000,9 @@ static int __mkroute_input(struct sk_buff *skb,
 
 	if (err)
 		flags |= RTCF_DIRECTSRC;
-
+#else
+	err = 0;
+#endif
 	if (out_dev == in_dev && err &&
 	    (IN_DEV_SHARED_MEDIA(out_dev) ||
 	     inet_addr_onlink(out_dev, saddr, FIB_RES_GW(*res))))
@@ -2008,6 +2034,11 @@ static int __mkroute_input(struct sk_buff *skb,
 	rth->fl.fl4_dst	= daddr;
 	rth->rt_dst	= daddr;
 	rth->fl.fl4_tos	= tos;
+#ifdef CONFIG_MAPPING
+	rth->mapping = res->mapping;	/* Make the mapping cache */
+	rth->src_prefix = res->src_prefix;
+	rth->dst_prefix = res->dst_prefix;
+#endif
 	rth->fl.mark    = skb->mark;
 	rth->fl.fl4_src	= saddr;
 	rth->rt_src	= saddr;
@@ -2131,6 +2162,13 @@ static int ip_route_input_slow(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 	free_res = 1;
 
 	RT_CACHE_STAT_INC(in_slow_tot);
+#ifdef	CONFIG_MAPPING
+	if (res.mapping) {
+		if (!ip_mapping(skb, res.src_prefix, res.dst_prefix))
+			printk("Mapping Failed!\n");
+		goto e_inval;	/* Stop the current stack running */
+	}
+#endif
 
 	if (res.type == RTN_BROADCAST)
 		goto brd_input;
@@ -2148,8 +2186,10 @@ static int ip_route_input_slow(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 		goto local_input;
 	}
 
+#ifndef        CONFIG_MAPPING
 	if (!IN_DEV_FORWARD(in_dev))
 		goto e_hostunreach;
+#endif
 	if (res.type != RTN_UNICAST)
 		goto martian_destination;
 
@@ -2281,6 +2321,16 @@ int ip_route_input(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 		    rth->fl.mark == skb->mark &&
 		    net_eq(dev_net(rth->u.dst.dev), net) &&
 		    !rt_is_expired(rth)) {
+#ifdef CONFIG_MAPPING
+			if (rth->mapping) {
+				dst_hold(&rth->u.dst);
+				RT_CACHE_STAT_INC(in_hit);
+				if (!ip_mapping(skb, rth->src_prefix, rth->dst_prefix)) {
+					printk("Mapping Failed!\n");
+				}
+				return -EINVAL;	/* Stop the stack running */
+			}
+#endif
 			dst_use(&rth->u.dst, jiffies);
 			RT_CACHE_STAT_INC(in_hit);
 			rcu_read_unlock();
@@ -2310,10 +2360,21 @@ skip_cache:
 		if ((in_dev = __in_dev_get_rcu(dev)) != NULL) {
 			int our = ip_check_mc(in_dev, daddr, saddr,
 				ip_hdr(skb)->protocol);
+			
+#ifdef CONFIG_TP_MULTICAST			
+		if(LOCAL_MCAST(daddr))
+		{			
+			our = 0;
+		}
+#endif
+			
 			if (our
 #ifdef CONFIG_IP_MROUTE
 			    || (!ipv4_is_local_multicast(daddr) &&
 				IN_DEV_MFORWARD(in_dev))
+#endif
+#ifdef CONFIG_TP_MULTICAST
+                || 1
 #endif
 			    ) {
 				rcu_read_unlock();
@@ -2402,6 +2463,11 @@ static int __mkroute_output(struct rtable **result,
 	rth->rt_iif	= oldflp->oif ? : dev_out->ifindex;
 	/* get references to the devices that are to be hold by the routing
 	   cache entry */
+#ifdef CONFIG_MAPPING
+	rth->mapping	= res->mapping;
+	rth->src_prefix = res->src_prefix;
+	rth->dst_prefix = res->dst_prefix;
+#endif	
 	rth->u.dst.dev	= dev_out;
 	dev_hold(dev_out);
 	rth->idev	= in_dev_get(dev_out);
@@ -3412,7 +3478,7 @@ int __init ip_rt_init(void)
 		alloc_large_system_hash("IP route cache",
 					sizeof(struct rt_hash_bucket),
 					rhash_entries,
-					(totalram_pages >= 128 * 1024) ?
+					(num_physpages >= 128 * 1024) ?
 					15 : 17,
 					0,
 					&rt_hash_log,

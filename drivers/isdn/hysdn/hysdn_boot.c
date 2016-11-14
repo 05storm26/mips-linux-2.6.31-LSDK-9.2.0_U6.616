@@ -1,4 +1,4 @@
-/* $Id: hysdn_boot.c,v 1.4.6.4 2001/09/23 22:24:54 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hysdn/hysdn_boot.c#1 $
  *
  * Linux driver for HYSDN cards
  * specific routines for booting and pof handling

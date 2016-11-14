@@ -1,4 +1,4 @@
-/* $Id: dma.h,v 1.2 2001/05/09 12:17:42 johana Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/dma.h#1 $ */
 
 #ifndef _ASM_DMA_H
 #define _ASM_DMA_H

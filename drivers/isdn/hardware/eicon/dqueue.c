@@ -1,4 +1,4 @@
-/* $Id: dqueue.c,v 1.5 2003/04/12 21:40:49 schindler Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/dqueue.c#1 $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * User Mode IDI Interface

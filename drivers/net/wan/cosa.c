@@ -1,4 +1,4 @@
-/* $Id: cosa.c,v 1.31 2000/03/08 17:47:16 kas Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/wan/cosa.c#1 $ */
 
 /*
  *  Copyright (C) 1995-1997  Jan "Yenya" Kasprzak <kas@fi.muni.cz>

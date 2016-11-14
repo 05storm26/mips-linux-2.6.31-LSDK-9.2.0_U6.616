@@ -34,6 +34,7 @@ static struct pernet_operations br_net_ops = {
 
 static int __init br_init(void)
 {
+#if !defined(CONFIG_HYBRID_BRIDGE_SUPPORT)
 	int err;
 
 	err = stp_proto_register(&br_stp_proto);
@@ -81,10 +82,14 @@ err_out1:
 err_out:
 	stp_proto_unregister(&br_stp_proto);
 	return err;
+#else
+    return 0;
+#endif
 }
 
 static void __exit br_deinit(void)
 {
+#if !defined(CONFIG_HYBRID_BRIDGE_SUPPORT)
 	stp_proto_unregister(&br_stp_proto);
 
 	br_netlink_fini();
@@ -102,6 +107,7 @@ static void __exit br_deinit(void)
 
 	br_handle_frame_hook = NULL;
 	br_fdb_fini();
+#endif
 }
 
 EXPORT_SYMBOL(br_should_route_hook);

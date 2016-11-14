@@ -1,4 +1,4 @@
-/* $Id: isac.c,v 1.31.2.3 2004/01/13 14:31:25 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isac.c#1 $
  *
  * ISAC specific routines
  *

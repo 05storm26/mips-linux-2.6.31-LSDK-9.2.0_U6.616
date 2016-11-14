@@ -975,7 +975,8 @@ static int pppol2tp_sendmsg(struct kiocb *iocb, struct socket *sock, struct msgh
 	/* Calculate UDP checksum if configured to do so */
 	if (sk_tun->sk_no_check == UDP_CSUM_NOXMIT)
 		skb->ip_summed = CHECKSUM_NONE;
-	else if (!(skb_dst(skb)->dev->features & NETIF_F_V4_CSUM)) {
+//	else if (!(skb_dst(skb)->dev->features & NETIF_F_V4_CSUM)) {
+	else if (skb_dst(skb) && skb_dst(skb)->dev && !(skb_dst(skb)->dev->features & NETIF_F_V4_CSUM)) {
 		skb->ip_summed = CHECKSUM_COMPLETE;
 		csum = skb_checksum(skb, 0, udp_len, 0);
 		uh->check = csum_tcpudp_magic(inet->saddr, inet->daddr,
@@ -1141,7 +1142,9 @@ static int pppol2tp_xmit(struct ppp_channel *chan, struct sk_buff *skb)
 	uh->len = htons(udp_len);
 	uh->check = 0;
 
-	/* Debug */
+
+	/* should cut off debug info... by HouXB, 12May11 */
+	/* Debug 
 	if (session->send_seq)
 		PRINTK(session->debug, PPPOL2TP_MSG_DATA, KERN_DEBUG,
 		       "%s: send %d bytes, ns=%hu\n", session->name,
@@ -1164,6 +1167,7 @@ static int pppol2tp_xmit(struct ppp_channel *chan, struct sk_buff *skb)
 		}
 		printk("\n");
 	}
+	*/
 
 	memset(&(IPCB(skb)->opt), 0, sizeof(IPCB(skb)->opt));
 	IPCB(skb)->flags &= ~(IPSKB_XFRM_TUNNEL_SIZE | IPSKB_XFRM_TRANSFORMED |
@@ -1177,15 +1181,38 @@ static int pppol2tp_xmit(struct ppp_channel *chan, struct sk_buff *skb)
 
 	/* Calculate UDP checksum if configured to do so */
 	if (sk_tun->sk_no_check == UDP_CSUM_NOXMIT)
+	{	
 		skb->ip_summed = CHECKSUM_NONE;
-	else if (!(skb_dst(skb)->dev->features & NETIF_F_V4_CSUM)) {
+	}
+	// Fix NULL point bug, add check for valid skb->dst pointer, by lqt, 2010.10.21 
+	//else if (!(skb_dst(skb)->dev->features & NETIF_F_V4_CSUM)) {	
+	//else if (skb_dst(skb) && (skb_dst(skb)->dev) && (!(skb_dst(skb)->dev->features & NETIF_F_V4_CSUM))) {
+
+	/*  In this situation, we use device eth1(WAN),
+		and the dev->features in our ehternet device is 0,
+		so we do not need to check it in every package.
+		by HouXB, 13May11 */
+	else if (1){
+		/* 
+		printk(" +++F:%s, L:%d, netdevice <%s> features: %lx.\n", 
+			__FUNCTION__,__LINE__,
+			skb_dst(skb)->dev->name,
+			skb_dst(skb)->dev->features);
+		*/
 		skb->ip_summed = CHECKSUM_COMPLETE;
 		csum = skb_checksum(skb, 0, udp_len, 0);
 		uh->check = csum_tcpudp_magic(inet->saddr, inet->daddr,
 					      udp_len, IPPROTO_UDP, csum);
 		if (uh->check == 0)
 			uh->check = CSUM_MANGLED_0;
+		
 	} else {
+		/* will never reach here. */
+		printk(" ---F:%s, L:%d, netdevice <%s> features: %lx.\n", 
+			__FUNCTION__,__LINE__,
+			skb_dst(skb)->dev->name,
+			skb_dst(skb)->dev->features);
+		
 		skb->ip_summed = CHECKSUM_PARTIAL;
 		skb->csum_start = skb_transport_header(skb) - skb->head;
 		skb->csum_offset = offsetof(struct udphdr, check);

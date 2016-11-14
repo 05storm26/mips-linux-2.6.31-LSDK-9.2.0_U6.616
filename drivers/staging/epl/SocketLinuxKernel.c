@@ -51,9 +51,9 @@
 
                 $RCSfile: SocketLinuxKernel.c,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.3 $  $Date: 2008/04/17 21:36:32 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

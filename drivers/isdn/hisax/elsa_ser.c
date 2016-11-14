@@ -1,4 +1,4 @@
-/* $Id: elsa_ser.c,v 2.14.2.3 2004/02/11 13:21:33 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/elsa_ser.c#1 $
  *
  * stuff for the serial modem on ELSA cards
  *

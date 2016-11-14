@@ -1,4 +1,4 @@
-/* $Id: avmcard.h,v 1.1.4.1.2.1 2001/12/21 15:00:17 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/avm/avmcard.h#1 $
  *
  * Copyright 1999 by Carsten Paeth <calle@calle.de>
  *

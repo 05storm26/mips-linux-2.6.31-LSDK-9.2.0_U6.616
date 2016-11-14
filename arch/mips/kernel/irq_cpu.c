@@ -99,7 +99,8 @@ static struct irq_chip mips_mt_cpu_irq_controller = {
 
 void __init mips_cpu_irq_init(void)
 {
-	int irq_base = MIPS_CPU_IRQ_BASE;
+	//int irq_base = MIPS_CPU_IRQ_BASE;
+	int irq_base = 0;
 	int i;
 
 	/* Mask interrupts. */

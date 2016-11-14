@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  *
- *	$Id: sysrq.c,v 1.15 1998/08/23 14:56:41 mj Exp $
+ *	$Id: //depot/sw/branches/NewmaStaging/linux/kernels/mips-linux-2.6.31/drivers/char/sysrq.c#3 $
  *
  *	Linux Magic System Request Key Hacks
  *

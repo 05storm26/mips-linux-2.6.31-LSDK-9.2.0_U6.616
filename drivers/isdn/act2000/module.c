@@ -1,4 +1,4 @@
-/* $Id: module.c,v 1.14.6.4 2001/09/23 22:24:32 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/act2000/module.c#1 $
  *
  * ISDN lowlevel-module for the IBM ISDN-S0 Active 2000.
  *

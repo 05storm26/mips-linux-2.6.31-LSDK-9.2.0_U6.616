@@ -25,6 +25,7 @@
 
 #include <linux/if.h>
 #include <linux/compiler.h>
+#include <linux/config.h>
 
 /* This structure gets passed by the SIOCADDRT and SIOCDELRT calls. */
 struct rtentry 
@@ -45,6 +46,10 @@ struct rtentry
 #endif
 	unsigned long	rt_window;	/* Window clamping 		*/
 	unsigned short	rt_irtt;	/* Initial RTT			*/
+#ifdef	CONFIG_MAPPING
+	unsigned long	src_prefix;	/* Mapping prefix for src addr	*/
+	unsigned long	dst_prefix;	/* Mapping prefix for dst addr	*/
+#endif
 };
 
 
@@ -59,6 +64,10 @@ struct rtentry
 #define RTF_WINDOW	0x0080		/* per route window clamping	*/
 #define RTF_IRTT	0x0100		/* Initial round trip time	*/
 #define RTF_REJECT	0x0200		/* Reject route			*/
+
+#ifdef	CONFIG_MAPPING
+#define RTF_MAPPING	0x0400		/* A mapping route entry	*/
+#endif
 
 /*
  *	<linux/ipv6_route.h> uses RTF values >= 64k

@@ -1,4 +1,4 @@
-/* $Id: um_idi.c,v 1.14 2004/03/21 17:54:37 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/um_idi.c#1 $ */
 
 #include "platform.h"
 #include "di_defs.h"

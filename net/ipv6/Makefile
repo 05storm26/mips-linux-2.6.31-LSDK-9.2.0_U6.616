@@ -37,6 +37,7 @@ obj-$(CONFIG_NETFILTER)	+= netfilter/
 obj-$(CONFIG_IPV6_SIT) += sit.o
 obj-$(CONFIG_IPV6_TUNNEL) += ip6_tunnel.o
 
+obj-$(CONFIG_MAPPING) += mapping.o proto_trans.o
 obj-y += addrconf_core.o exthdrs_core.o
 
 obj-$(subst m,y,$(CONFIG_IPV6)) += inet6_hashtables.o

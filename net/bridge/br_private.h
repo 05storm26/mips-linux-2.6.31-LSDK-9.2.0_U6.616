@@ -81,6 +81,10 @@ struct net_bridge_port
 	struct timer_list		message_age_timer;
 	struct kobject			kobj;
 	struct rcu_head			rcu;
+#ifdef CONFIG_ATH_HOTSPOT
+	u8				iswan;
+	u8				l2tif;
+#endif
 };
 
 struct net_bridge

@@ -1,7 +1,7 @@
 /*
  * hfc_usb.c
  *
- * $Id: hfc_usb.c,v 2.3.2.24 2007/10/14 08:40:29 mbachem Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/hfc_usb.c#1 $
  *
  * modular HiSax ISDN driver for Colognechip HFC-S USB chip
  *
@@ -44,7 +44,7 @@
 #include "hfc_usb.h"
 
 static const char *hfcusb_revision =
-    "$Revision: 2.3.2.24 $ $Date: 2007/10/14 08:40:29 $ ";
+    "$Revision: #1 $ $Date: 2012/02/01 $ ";
 
 /* Hisax debug support
 *  debug flags defined in hfc_usb.h as HFCUSB_DBG_[*]
@@ -817,8 +817,8 @@ collect_rx_frame(usb_fifo * fifo, __u8 * data, int len, int finish)
 	}
 	/* we have a complete hdlc packet */
 	if (finish) {
-		if (fifo->skbuff->len > 3 &&
-				!fifo->skbuff->data[fifo->skbuff->len - 1]) {
+		if ((!fifo->skbuff->data[fifo->skbuff->len - 1])
+		    && (fifo->skbuff->len > 3)) {
 
 			if (fifon == HFCUSB_D_RX) {
 				DBG(HFCUSB_DBG_DCHANNEL,

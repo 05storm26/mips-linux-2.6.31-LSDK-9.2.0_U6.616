@@ -72,6 +72,9 @@
 
 static struct kmem_cache *skbuff_head_cache __read_mostly;
 static struct kmem_cache *skbuff_fclone_cache __read_mostly;
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+static struct kmem_cache *skbuff_cb_store_cache __read_mostly;
+#endif
 
 static void sock_pipe_buf_release(struct pipe_inode_info *pipe,
 				  struct pipe_buffer *buf)
@@ -91,6 +94,80 @@ static int sock_pipe_buf_steal(struct pipe_inode_info *pipe,
 	return 1;
 }
 
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+/* Control buffer save/restore for IMQ devices */
+struct skb_cb_table {
+	void			*cb_next;
+	atomic_t		refcnt;
+	char      		cb[48];
+};
+
+static DEFINE_SPINLOCK(skb_cb_store_lock);
+
+int skb_save_cb(struct sk_buff *skb)
+{
+	struct skb_cb_table *next;
+
+	next = kmem_cache_alloc(skbuff_cb_store_cache, GFP_ATOMIC);
+	if (!next)
+		return -ENOMEM;
+
+	BUILD_BUG_ON(sizeof(skb->cb) != sizeof(next->cb));
+
+	memcpy(next->cb, skb->cb, sizeof(skb->cb));
+	next->cb_next = skb->cb_next;
+
+	atomic_set(&next->refcnt, 1);
+
+	skb->cb_next = next;
+	return 0;
+}
+EXPORT_SYMBOL(skb_save_cb);
+
+int skb_restore_cb(struct sk_buff *skb)
+{
+	struct skb_cb_table *next;
+
+	if (!skb->cb_next)
+		return 0;
+
+	next = skb->cb_next;
+
+	BUILD_BUG_ON(sizeof(skb->cb) != sizeof(next->cb));
+
+	memcpy(skb->cb, next->cb, sizeof(skb->cb));
+	skb->cb_next = next->cb_next;
+
+	spin_lock(&skb_cb_store_lock);
+
+	if (atomic_dec_and_test(&next->refcnt)) {
+		kmem_cache_free(skbuff_cb_store_cache, next);
+	}
+
+	spin_unlock(&skb_cb_store_lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(skb_restore_cb);
+
+static void skb_copy_stored_cb(struct sk_buff *new, struct sk_buff *old)
+{
+	struct skb_cb_table *next;
+
+	if (!old->cb_next) {
+		new->cb_next = 0;
+		return;
+	}
+
+	spin_lock(&skb_cb_store_lock);
+
+	next = old->cb_next;
+	atomic_inc(&next->refcnt);
+	new->cb_next = next;
+
+	spin_unlock(&skb_cb_store_lock);
+}
+#endif
 
 /* Pipe buffer operations for a socket. */
 static struct pipe_buf_operations sock_pipe_buf_ops = {
@@ -154,6 +231,186 @@ EXPORT_SYMBOL(skb_under_panic);
  *
  */
 
+#ifdef CONFIG_PRIV_SKB_MEM
+#define PRIV_SKB_MEM_2K (CONFIG_PRIV_SKB_MEM_2K * 0x100000)
+#define PRIV_SKB_MEM_4K (CONFIG_PRIV_SKB_MEM_4K * 0x100000)
+u8 priv_skb_mem[PRIV_SKB_MEM_2K + PRIV_SKB_MEM_4K + 
+                SMP_CACHE_BYTES];
+#define PRIV_BUFSIZE_2K 2048
+#define PRIV_BUFSIZE_4K 4096
+#define PRIV_SKB2K_MAX (PRIV_SKB_MEM_2K / PRIV_BUFSIZE_2K)
+#define PRIV_SKB4K_MAX (PRIV_SKB_MEM_4K / PRIV_BUFSIZE_4K)
+u32 ps_head2k = 0;
+u32 ps_tail2k = 0;
+u32 ps_head4k = 0;
+u32 ps_tail4k = 0;
+u8 *priv_skb_list_2k[PRIV_SKB2K_MAX];
+u8 *priv_skb_list_4k[PRIV_SKB4K_MAX];
+spinlock_t priv_skb2k_lock;
+spinlock_t priv_skb4k_lock;
+#ifdef PRIV_SKB_DEBUG 
+u32 ps_2k_alloc_cnt = 0;
+u32 ps_2k_free_cnt = 0;
+#endif
+
+void priv_skb_init(void)
+{
+    u8 * priv_skb_mem_2k = (u8 *)((((unsigned long)priv_skb_mem) + SMP_CACHE_BYTES - 1) & 
+                                ~(SMP_CACHE_BYTES - 1));
+    u8 * priv_skb_mem_4k = (u8 *)(((unsigned long)priv_skb_mem_2k) + PRIV_SKB_MEM_2K);
+
+    /* Init 2K skb list */
+    ps_head2k = 0;
+    ps_tail2k = 0;
+    
+    while (ps_tail2k < PRIV_SKB2K_MAX) {
+        priv_skb_list_2k[ps_tail2k] = (u8 *)(((unsigned long)priv_skb_mem_2k) + 
+                                        (ps_tail2k * PRIV_BUFSIZE_2K));
+        ps_tail2k++;
+    }
+    ps_tail2k = -1;
+#ifdef PRIV_SKB_DEBUG 
+    ps_2k_alloc_cnt = 0;
+    ps_2k_free_cnt = 0;
+#endif
+    spin_lock_init(&priv_skb2k_lock);
+
+    /* Init 4K skb list */
+    ps_head4k = 0;
+    ps_tail4k = 0;
+    
+    while (ps_tail4k < PRIV_SKB4K_MAX) {
+        priv_skb_list_4k[ps_tail4k] = (u8 *)(((unsigned long)priv_skb_mem_4k) + 
+                                        (ps_tail4k * PRIV_BUFSIZE_4K));
+        ps_tail4k++;
+    }
+    ps_tail4k = -1;
+    spin_lock_init(&priv_skb4k_lock);
+
+    printk(KERN_ERR "\n****************ALLOC***********************\n");
+    printk(KERN_ERR " Packet mem: %x (0x%x bytes)\n", (unsigned)priv_skb_mem_2k, sizeof(priv_skb_mem) - SMP_CACHE_BYTES);
+    printk(KERN_ERR "********************************************\n\n");
+}
+
+u8* priv_skb_get_2k(void) 
+{
+    u8 *skbmem;
+    unsigned long flags = 0;
+    int from_irq = in_irq();
+
+    if (!from_irq)
+        spin_lock_irqsave(priv_skb2k_lock, flags);
+
+    if(ps_head2k != ps_tail2k) {
+        skbmem = priv_skb_list_2k[ps_head2k];
+        priv_skb_list_2k[ps_head2k] = NULL;
+        ps_head2k = (ps_head2k + 1) % PRIV_SKB2K_MAX; 
+#ifdef PRIV_SKB_DEBUG 
+        ps_2k_alloc_cnt++;
+#endif
+    } else  {
+        skbmem = NULL;
+    }
+
+    if (!from_irq)
+        spin_unlock_irqrestore(priv_skb2k_lock, flags);
+
+    return skbmem;
+}
+
+u8* priv_skb_get_4k(void) 
+{
+    u8 *skbmem;
+    unsigned long flags = 0;
+    int from_irq = in_irq();
+
+    if (!from_irq)
+        spin_lock_irqsave(priv_skb4k_lock, flags);
+    if(ps_head4k != ps_tail4k) {
+        skbmem = priv_skb_list_4k[ps_head4k];
+        priv_skb_list_4k[ps_head4k] = NULL;
+        ps_head4k = (ps_head4k + 1) % PRIV_SKB4K_MAX; 
+    } else  {
+        skbmem = NULL;
+    }
+    if (!from_irq)
+        spin_unlock_irqrestore(priv_skb4k_lock, flags);
+    return skbmem;
+}
+
+u8* priv_skbmem_get(int size) 
+{
+    if(size <= PRIV_BUFSIZE_2K)
+        return priv_skb_get_2k();
+    else 
+        return priv_skb_get_4k();
+}
+
+void priv_skb_free_2k(u8 *skbmem) 
+{
+    unsigned long flags = 0;
+    int from_irq = in_irq();
+
+    if (!from_irq)
+        spin_lock_irqsave(priv_skb2k_lock, flags);
+    ps_tail2k = (ps_tail2k + 1) % PRIV_SKB2K_MAX;
+    priv_skb_list_2k[ps_tail2k] = skbmem;
+#ifdef PRIV_SKB_DEBUG 
+    ps_2k_free_cnt++;
+#endif
+    if (!from_irq)
+        spin_unlock_irqrestore(priv_skb2k_lock, flags);
+}
+
+void priv_skb_free_4k(u8 *skbmem) 
+{
+    unsigned long flags = 0;
+    int from_irq = in_irq();
+    if (!from_irq)
+        spin_lock_irqsave(priv_skb4k_lock, flags);
+    ps_tail4k = (ps_tail4k + 1) % PRIV_SKB4K_MAX;
+    priv_skb_list_4k[ps_tail4k] = skbmem;
+    if (!from_irq)
+        spin_unlock_irqrestore(priv_skb4k_lock, flags);
+}
+
+void priv_skbmem_free(u8 *skbmem, int size) 
+{
+    if(size <= PRIV_BUFSIZE_2K)
+        priv_skb_free_2k(skbmem);
+    else 
+        priv_skb_free_4k(skbmem);
+}
+#endif
+
+
+#ifdef CONFIG_WLAN_4K_SKB_OPT
+inline u8* skb_4k_opt_malloc(unsigned int size, gfp_t gfp_mask, int node)
+{
+	struct skb_shared_info *shinfo;
+	u8 *data;
+	shinfo = kmalloc(sizeof(struct skb_shared_info), gfp_mask & ~__GFP_DMA);
+	if (!shinfo)
+		return NULL;
+	data = kmalloc_node_track_caller(size + sizeof(void*), gfp_mask, node);
+	if (!data)
+	{
+		kfree(shinfo);
+		return NULL;
+	}
+	*(struct skb_shared_info **)(data + size) = shinfo;
+
+	return data;
+	
+}
+
+inline void skb_4k_opt_free(struct sk_buff *skb)
+{
+	kfree(skb_shinfo(skb));
+	kfree(skb->head);
+}
+#endif
+
 /**
  *	__alloc_skb	-	allocate a network buffer
  *	@size: size to allocate
@@ -185,8 +442,24 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask,
 		goto out;
 
 	size = SKB_DATA_ALIGN(size);
+#ifdef CONFIG_PRIV_SKB_MEM
+    if (unlikely((size > PRIV_BUFSIZE_4K) || ((data = priv_skbmem_get(size + 
+            sizeof(struct skb_shared_info))) == NULL))) {
+	    data = kmalloc_node_track_caller(size + sizeof(struct skb_shared_info),
+			    gfp_mask, node);
+    }
+#else
+#ifdef CONFIG_WLAN_4K_SKB_OPT
+	if (skb_could_do_4k_opt(size))
+	{
+		data = skb_4k_opt_malloc(size, gfp_mask, node);
+	}
+	else
+#endif
+
 	data = kmalloc_node_track_caller(size + sizeof(struct skb_shared_info),
 			gfp_mask, node);
+#endif
 	if (!data)
 		goto nodata;
 
@@ -206,6 +479,13 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask,
 	kmemcheck_annotate_bitfield(skb, flags2);
 #ifdef NET_SKBUFF_DATA_USES_OFFSET
 	skb->mac_header = ~0U;
+#endif
+#ifdef CONFIG_ATHRS_HW_NAT
+	skb->ath_hw_nat_fw_flags = 0;
+#endif
+#if defined(CONFIG_ATHRS17_HNAT) && !defined(CONFIG_ATHRS17_WIFI_HNAT)
+	/* init the flag */
+	skb->athrs17_hnat_flags = 0;
 #endif
 
 	/* make sure we initialize shinfo sequentially */
@@ -338,6 +618,10 @@ static void skb_clone_fraglist(struct sk_buff *skb)
 
 static void skb_release_data(struct sk_buff *skb)
 {
+#ifdef CONFIG_PRIV_SKB_MEM
+    u32 size;
+#endif
+
 	if (!skb->cloned ||
 	    !atomic_sub_return(skb->nohdr ? (1 << SKB_DATAREF_SHIFT) + 1 : 1,
 			       &skb_shinfo(skb)->dataref)) {
@@ -350,7 +634,23 @@ static void skb_release_data(struct sk_buff *skb)
 		if (skb_has_frags(skb))
 			skb_drop_fraglist(skb);
 
+#ifdef CONFIG_PRIV_SKB_MEM
+        if (likely((skb->head - priv_skb_mem) < sizeof(priv_skb_mem))) {
+            size = skb->end - skb->head + sizeof(struct skb_shared_info);
+            priv_skbmem_free(skb->head, size);
+        } else {
+            kfree(skb->head); 
+        }
+#else
+#ifdef CONFIG_WLAN_4K_SKB_OPT
+	if (skb_could_do_4k_opt(skb_end_pointer(skb) - skb->head))
+	{
+		skb_4k_opt_free(skb);
+	}
+	else
+#endif
 		kfree(skb->head);
+#endif
 	}
 }
 
@@ -398,6 +698,15 @@ static void skb_release_head_state(struct sk_buff *skb)
 		WARN_ON(in_irq());
 		skb->destructor(skb);
 	}
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	/* This should not happen. When it does, avoid memleak by restoring
+	the chain of cb-backups. */
+	while(skb->cb_next != NULL) {
+		printk(KERN_WARNING "kfree_skb: skb->cb_next: %08x\n",
+			skb->cb_next);
+		skb_restore_cb(skb);
+	}
+#endif
 #if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
 	nf_conntrack_put(skb->nfct);
 	nf_conntrack_put_reasm(skb->nfct_reasm);
@@ -535,6 +844,9 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	new->sp			= secpath_get(old->sp);
 #endif
 	memcpy(new->cb, old->cb, sizeof(old->cb));
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	skb_copy_stored_cb(new, old);
+#endif
 	new->csum		= old->csum;
 	new->local_df		= old->local_df;
 	new->pkt_type		= old->pkt_type;
@@ -561,6 +873,12 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	new->vlan_tci		= old->vlan_tci;
 #if defined(CONFIG_MAC80211) || defined(CONFIG_MAC80211_MODULE)
 	new->do_not_encrypt	= old->do_not_encrypt;
+#endif
+#ifdef CONFIG_ATHRS_HW_NAT
+        new->ath_hw_nat_fw_flags = old->ath_hw_nat_fw_flags;
+#endif
+#if defined(CONFIG_ATHRS17_HNAT) && !defined(CONFIG_ATHRS17_WIFI_HNAT)
+	new->athrs17_hnat_flags = old->athrs17_hnat_flags;
 #endif
 
 	skb_copy_secmark(new, old);
@@ -816,7 +1134,21 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 
 	size = SKB_DATA_ALIGN(size);
 
+#ifdef CONFIG_PRIV_SKB_MEM
+    if (unlikely((size > PRIV_BUFSIZE_4K) || ((data = priv_skbmem_get(size + 
+            sizeof(struct skb_shared_info))) == NULL))) {
+	    data = kmalloc(size + sizeof(struct skb_shared_info), gfp_mask);
+    }
+#else
+#ifdef CONFIG_WLAN_4K_SKB_OPT
+	if (skb_could_do_4k_opt(size))
+	{
+		data = skb_4k_opt_malloc(size, gfp_mask, -1);
+	}
+	else
+#endif
 	data = kmalloc(size + sizeof(struct skb_shared_info), gfp_mask);
+#endif
 	if (!data)
 		goto nodata;
 
@@ -826,6 +1158,14 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 	memcpy(data + nhead, skb->head, skb->tail);
 #else
 	memcpy(data + nhead, skb->head, skb->tail - skb->head);
+#endif
+#if defined(CONFIG_WLAN_4K_SKB_OPT) && !defined(CONFIG_PRIV_SKB_MEM)
+	if (skb_could_do_4k_opt(size))
+	{
+		memcpy(*(struct skb_shared_info **)(data + size), skb_shinfo(skb),
+		       sizeof(struct skb_shared_info));
+	}
+	else
 #endif
 	memcpy(data + size, skb_end_pointer(skb),
 	       sizeof(struct skb_shared_info));
@@ -1672,6 +2012,44 @@ fault:
 }
 EXPORT_SYMBOL(skb_store_bits);
 
+#ifdef CONFIG_ATH_HWCS_notyet
+inline int
+ath_get_frag_hwcs(void *data, int len, __wsum add)
+{
+	unsigned x;
+	extern __sum16 ath_hwcs_start(void *buf, int len);
+	extern unsigned ath_hwcs_get(void);
+
+        ath_hwcs_start(data, len);
+
+	x = ath_hwcs_get();
+	x = (0xFFFF - __swab16(x));
+
+	return (add + x);
+}
+#endif
+
+#ifdef CONFIG_ATH_HWCS
+/* Get the checksum computed by hardware */
+inline unsigned
+ath_hwcs_complete(unsigned add)
+{
+	register unsigned x;
+	extern unsigned ath_hwcs_get(void);
+
+	x = ath_hwcs_get();
+	if (x == 0x0bad0000u) {
+		// Allow the s/w to take care
+		return 0;
+	}
+
+        /* Byte swap and do one's complement */
+	x = (0xFFFF - __swab16(x));
+
+	return (add + x);
+}
+#endif /* CONFIG_ATH_HWCS */
+
 /* Checksum skb data. */
 
 __wsum skb_checksum(const struct sk_buff *skb, int offset,
@@ -1682,11 +2060,22 @@ __wsum skb_checksum(const struct sk_buff *skb, int offset,
 	struct sk_buff *frag_iter;
 	int pos = 0;
 
+#ifdef CONFIG_ATH_HWCS
+	extern unsigned ath_hwcs_get(void);
+#endif
 	/* Checksum header. */
 	if (copy > 0) {
 		if (copy > len)
 			copy = len;
+
+#ifdef CONFIG_ATH_HWCS
+		if ((csum = ath_hwcs_complete(csum)) == 0) {
+			/* If h/w checksum fails, fall back to s/w */
+#endif
 		csum = csum_partial(skb->data + offset, copy, csum);
+#ifdef CONFIG_ATH_HWCS
+		}
+#endif
 		if ((len -= copy) == 0)
 			return csum;
 		offset += copy;
@@ -1707,6 +2096,11 @@ __wsum skb_checksum(const struct sk_buff *skb, int offset,
 			if (copy > len)
 				copy = len;
 			vaddr = kmap_skb_frag(frag);
+#ifdef CONFIG_ATH_HWCS_notyet
+			if ((csum2 = ath_get_frag_hwcs(vaddr + frag->page_offset +
+					offset - start, copy, 0)) == 0)
+			/* If h/w checksum fails, fall back to s/w */
+#endif
 			csum2 = csum_partial(vaddr + frag->page_offset +
 					     offset - start, copy, 0);
 			kunmap_skb_frag(vaddr);
@@ -2704,8 +3098,7 @@ int skb_gro_receive(struct sk_buff **head, struct sk_buff *skb)
 
 		NAPI_GRO_CB(skb)->free = 1;
 		goto done;
-	} else if (skb_gro_len(p) != pinfo->gso_size)
-		return -E2BIG;
+	}
 
 	headroom = skb_headroom(p);
 	nskb = netdev_alloc_skb(p->dev, headroom + skb_gro_offset(p));
@@ -2779,6 +3172,17 @@ void __init skb_init(void)
 						0,
 						SLAB_HWCACHE_ALIGN|SLAB_PANIC,
 						NULL);
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	skbuff_cb_store_cache = kmem_cache_create("skbuff_cb_store_cache",
+						  sizeof(struct skb_cb_table),
+						  0,
+						  SLAB_HWCACHE_ALIGN|SLAB_PANIC,
+						  NULL);
+#endif
+
+#ifdef CONFIG_PRIV_SKB_MEM
+    priv_skb_init();    
+#endif
 }
 
 /**

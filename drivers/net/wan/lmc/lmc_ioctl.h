@@ -1,6 +1,6 @@
 #ifndef _LMC_IOCTL_H_
 #define _LMC_IOCTL_H_
-/*	$Id: lmc_ioctl.h,v 1.15 2000/04/06 12:16:43 asj Exp $	*/
+/*	$Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/wan/lmc/lmc_ioctl.h#1 $	*/
 
  /*
   * Copyright (c) 1997-2000 LAN Media Corporation (LMC)

@@ -1,4 +1,4 @@
-/* $Id: hfc_pci.c,v 1.48.2.4 2004/02/11 13:21:33 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/hfc_pci.c#1 $
  *
  * low level driver for CCD's hfc-pci based cards
  *
@@ -22,7 +22,7 @@
 #include <linux/pci.h>
 #include <linux/interrupt.h>
 
-static const char *hfcpci_revision = "$Revision: 1.48.2.4 $";
+static const char *hfcpci_revision = "$Revision: #1 $";
 
 /* table entry in the PCI devices list */
 typedef struct {

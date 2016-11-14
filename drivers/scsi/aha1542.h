@@ -1,6 +1,6 @@
 #ifndef _AHA1542_H
 
-/* $Id: aha1542.h,v 1.1 1992/07/24 06:27:38 root Exp root $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/aha1542.h#1 $
  *
  * Header file for the adaptec 1542 driver for Linux
  *

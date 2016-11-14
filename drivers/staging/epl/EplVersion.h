@@ -52,9 +52,9 @@
 
                 $RCSfile: EplVersion.h,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.6 $  $Date: 2008/10/17 15:32:32 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

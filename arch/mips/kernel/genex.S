@@ -21,6 +21,9 @@
 #include <asm/war.h>
 #include <asm/page.h>
 #include <asm/thread_info.h>
+#if CONFIG_ATH_DDR_RELEASE_TIMER
+#include <atheros.h>
+#endif
 
 #define PANIC_PIC(msg)					\
 		.set push;				\
@@ -194,6 +197,73 @@ NESTED(handle_int, PT_SIZE, sp)
 #endif
 1:
 	.set pop
+#endif
+
+#if CONFIG_ATH_DDR_RELEASE_TIMER
+	/* Check whether the MISC interrupt is enabled and present */
+	mfc0	k0,	CP0_STATUS,	0
+	mfc0	k1,	CP0_CAUSE,	0
+	and	k0,	k0,	k1
+	andi	k0,	k0,	CAUSEF_IP6
+	beqz	k0,	2f
+
+	/* Check whether the interrupt is Timer interrupt in the MISC space */
+	li	k0,	RST_GENERAL_BASE
+	lw	k1,	RST_MISC_INTERRUPT_STATUS_OFFSET(k0)
+	lw	k0,	RST_MISC_INTERRUPT_MASK_OFFSET(k0)
+	and	k0,	k0,	k1
+	andi	k0,	k0,	RST_MISC_INTERRUPT_STATUS_TIMER2_INT_MASK
+	beqz	k0,	2f
+
+	/* Clear the interrupt */
+	li	k0,	RST_GENERAL_BASE
+	lw	k1,	RST_MISC_INTERRUPT_STATUS_OFFSET(k0)
+	ori	k1,	k1,	RST_MISC_INTERRUPT_STATUS_TIMER2_INT_MASK
+	xori	k1,	k1,	RST_MISC_INTERRUPT_STATUS_TIMER2_INT_MASK
+	sw	k1,	RST_MISC_INTERRUPT_STATUS_OFFSET(k0)
+
+#if 0
+	/* Fixed delay Part of the routine */
+	li	k1,	0x200
+3:
+	addiu	k1,	k1,	-1
+	bnez	k1,	3b
+	nop
+#else
+	/* Save GPRS a0, a1 for using them in this routine */
+	li	k0,	KSEG1ADDR(ATH_SRAM_BASE)
+	sw	a0,	0x0(k0)
+	sw	a1,	0x4(k0)
+
+	/* Reset the DDR Performance counters - Client is CPU */
+	li	k0,	DDR_CONFIG_BASE
+	li	k1,	0x7
+	sw	k1,	DDRMON_CTL_OFFSET(k0)
+	sw	$0,	DDRMON_CTL_OFFSET(k0)
+
+	/* Delay between reading the Performance counters while polling */
+	lw	k1,	DDRMON_GNT_OFFSET(k0)
+4:
+	ori	a0,	k1,	0x0
+	li	a1,	0x20
+12:
+	addiu	a1,	a1,	-1
+	bnez	a1,	12b
+
+	/* Read and compare whether the CPU didnt get any grant */
+	lw	k1,	DDRMON_GNT_OFFSET(k0)
+	bne	a0,	k1,	4b
+
+	/* Put the values back to a0 and a1 and continue  */
+	li	k0,	KSEG1ADDR(ATH_SRAM_BASE)
+	lw	a0,	0x0(k0)
+	lw	a1,	0x4(k0)
+
+#endif
+5:
+	eret
+
+2:
 #endif
 	SAVE_ALL
 	CLI

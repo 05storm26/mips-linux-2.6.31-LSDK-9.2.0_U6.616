@@ -1,4 +1,4 @@
-/* $Id: isdnl1.h,v 2.12.2.3 2004/02/11 13:21:34 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isdnl1.h#1 $
  *
  * Layer 1 defines
  *

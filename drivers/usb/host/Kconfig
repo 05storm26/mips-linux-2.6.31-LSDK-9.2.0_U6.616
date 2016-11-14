@@ -356,6 +356,85 @@ config USB_WHCI_HCD
 	  To compile this driver a module, choose M here: the module
 	  will be called "whci-hcd".
 
+config USB_OHCI_AR7100
+	bool "USB OHCI support for AR7100"
+	depends on MACH_AR7100 && USB_OHCI_HCD
+	help
+	  Support for AR7100 OHCI controller
+
+config USB_OHCI_AR7240
+	bool "USB OHCI support for AR7240"
+	depends on (MACH_AR7240 || MACH_HORNET) && USB_OHCI_HCD
+	help
+	  Support for AR7240 OHCI controller
+
+config USB_EHCI_AR7100
+	bool "USB EHCI support for AR7100"
+	depends on MACH_AR7100 && USB_EHCI_HCD
+	help
+	  Support for AR7100 EHCI controller
+
+config USB_EHCI_AR9130
+	bool "USB EHCI support for AR9130"
+	depends on (MACH_AR7100 || MACH_AR7240 || MACH_HORNET) && USB_EHCI_HCD
+	help
+	  Support for AR9130 EHCI controller
+
+config USB_AR9130_OTG
+	bool "USB EHCI-OTG support for AR9130"
+	depends on (MACH_AR7100 || MACH_AR7240) && USB_EHCI_AR9130 && USB_EHCI_HCD
+	help
+	  Support for AR9130 OTG EHCI controller
+
+config USB_OHCI_ATH
+	bool "USB OHCI support for Atheros"
+	depends on (MACH_AR724x || MACH_AR933x || MACH_AR934x) && USB_OHCI_HCD
+	help
+	  Support for Atheros OHCI controller
+
+config USB_EHCI_ATH
+        bool "USB EHCI support for Atheros"
+        depends on (MACH_AR724x || MACH_AR933x || MACH_AR934x) && USB_EHCI_HCD
+        help
+          Support for Atheros EHCI controller
+
+config USB_EHCI_ATH_HOST1
+	bool "USB EHCI Host1 support for Atheros"
+	depends on (MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x) && USB_EHCI_HCD
+	help
+	  Support for Atheros host1 EHCI controller
+
+config USB_EHCI_ATH_HOST2
+        bool "USB EHCI Host2 support for Atheros"
+        depends on (MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x) && USB_EHCI_HCD
+        help
+          Support for Atheros host2 EHCI controller
+
+config USB_ATH_OTG
+	bool "USB EHCI-OTG support for Atheros"
+	depends on (MACH_AR7100 || MACH_AR7240) && USB_EHCI_ATH && USB_EHCI_HCD
+	help
+	  Support for Atheros OTG EHCI controller
+
+config ATH_USB_DMA_TO_SRAM
+	bool "Use SRAM as destination for Bulk Pipe-In i/o"
+	depends on (MACH_AR934x || MACH_QCA955x)
+	default n
+
+config ATH_USB_SRAM_NUM_IO
+	int "Number of simultaneous Bulk Pipe-Ins allowed"
+	depends on ATH_USB_DMA_TO_SRAM
+	default 2
+
+config ATH_USB_CHOOSE_CONFIG
+	int "Choose a device configuration based on wMaxPacketSize"
+	depends on USB_EHCI_ATH
+	default 0
+	help
+	  If an USB device exports multiple configurations, choose the
+	  configuration with wMaxPacketSize that is less than the value
+	  specified here. 0 turns off the feature
+
 config USB_HWA_HCD
 	tristate "Host Wire Adapter (HWA) driver (EXPERIMENTAL)"
 	depends on EXPERIMENTAL

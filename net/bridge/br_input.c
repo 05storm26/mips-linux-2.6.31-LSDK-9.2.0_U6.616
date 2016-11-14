@@ -61,6 +61,14 @@ int br_handle_frame_finish(struct sk_buff *skb)
 
 	dst = NULL;
 
+#if defined(CONFIG_ATHRS17_HNAT) && !defined(CONFIG_ATHRS17_WIFI_HNAT)
+	/* not from ethernet device */
+	if (strncmp(skb->dev->name, "eth", 3))
+	{
+		skb->athrs17_hnat_flags = 1; 
+	}
+#endif
+
 	if (is_multicast_ether_addr(dest)) {
 		br->dev->stats.multicast++;
 		skb2 = skb;

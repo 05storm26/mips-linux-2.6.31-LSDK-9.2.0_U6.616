@@ -18,7 +18,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- * $Id: aic7xxx.h,v 3.2 1996/07/23 03:37:26 deang Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/aic7xxx_old/aic7xxx.h#1 $
  *-M*************************************************************************/
 #ifndef _aic7xxx_h
 #define _aic7xxx_h

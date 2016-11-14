@@ -1,4 +1,4 @@
-/* $Id: g364fb.c,v 1.3 1998/08/28 22:43:00 tsbogend Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/video/g364fb.c#1 $
  *
  * linux/drivers/video/g364fb.c -- Mips Magnum frame buffer device
  *

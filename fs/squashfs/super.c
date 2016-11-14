@@ -38,15 +38,86 @@
 #include <linux/zlib.h>
 #include <linux/magic.h>
 
+#include <crypto/compress.h>
+
+#include <net/netlink.h>
+
 #include "squashfs_fs.h"
 #include "squashfs_fs_sb.h"
 #include "squashfs_fs_i.h"
 #include "squashfs.h"
 
+
+static int squashfs_setup_zlib(struct squashfs_sb_info *msblk)
+{
+	int err = -EOPNOTSUPP;
+
+#ifdef CONFIG_SQUASHFS_SUPPORT_ZLIB
+	struct {
+		struct nlattr nla;
+		int val;
+	} params = {
+		.nla = {
+			.nla_len	= nla_attr_size(sizeof(int)),
+			.nla_type	= ZLIB_DECOMP_WINDOWBITS,
+		},
+		.val			= DEF_WBITS,
+	};
+
+	msblk->tfm = crypto_alloc_pcomp("zlib", 0,
+					CRYPTO_ALG_ASYNC);
+	if (IS_ERR(msblk->tfm)) {
+		ERROR("Failed to load zlib crypto module\n");
+		return PTR_ERR(msblk->tfm);
+	}
+
+	err = crypto_decompress_setup(msblk->tfm, &params, sizeof(params));
+	if (err) {
+		ERROR("Failed to set up decompression parameters\n");
+		crypto_free_pcomp(msblk->tfm);
+	}
+#endif
+
+	return err;
+}
+
+static int squashfs_setup_lzma(struct squashfs_sb_info *msblk)
+{
+	int err = -EOPNOTSUPP;
+
+#ifdef CONFIG_SQUASHFS_SUPPORT_LZMA
+	struct {
+		struct nlattr nla;
+		int val;
+	} params = {
+		.nla = {
+			.nla_len	= nla_attr_size(sizeof(int)),
+			.nla_type	= UNLZMA_DECOMP_OUT_BUFFERS,
+		},
+		.val = (msblk->block_size / PAGE_CACHE_SIZE) + 1
+	};
+
+	msblk->tfm = crypto_alloc_pcomp("lzma", 0,
+					CRYPTO_ALG_ASYNC);
+	if (IS_ERR(msblk->tfm)) {
+		ERROR("Failed to load lzma crypto module\n");
+		return PTR_ERR(msblk->tfm);
+	}
+
+	err = crypto_decompress_setup(msblk->tfm, &params, sizeof(params));
+	if (err) {
+		ERROR("Failed to set up decompression parameters\n");
+		crypto_free_pcomp(msblk->tfm);
+	}
+#endif
+
+	return err;
+}
+
 static struct file_system_type squashfs_fs_type;
 static struct super_operations squashfs_super_ops;
 
-static int supported_squashfs_filesystem(short major, short minor, short comp)
+static int supported_squashfs_filesystem(short major, short minor)
 {
 	if (major < SQUASHFS_MAJOR) {
 		ERROR("Major/Minor mismatch, older Squashfs %d.%d "
@@ -59,9 +130,6 @@ static int supported_squashfs_filesystem(short major, short minor, short comp)
 		return -EINVAL;
 	}
 
-	if (comp != ZLIB_COMPRESSION)
-		return -EINVAL;
-
 	return 0;
 }
 
@@ -70,7 +138,9 @@ static int squashfs_fill_super(struct super_block *sb, void *data, int silent)
 {
 	struct squashfs_sb_info *msblk;
 	struct squashfs_super_block *sblk = NULL;
+#ifdef CONFIG_BLOCK
 	char b[BDEVNAME_SIZE];
+#endif
 	struct inode *root;
 	long long root_inode;
 	unsigned short flags;
@@ -80,27 +150,27 @@ static int squashfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	TRACE("Entered squashfs_fill_superblock\n");
 
+#if !defined(CONFIG_SQUASHFS_MTD)
 	sb->s_fs_info = kzalloc(sizeof(*msblk), GFP_KERNEL);
 	if (sb->s_fs_info == NULL) {
 		ERROR("Failed to allocate squashfs_sb_info\n");
 		return -ENOMEM;
 	}
+#endif
 	msblk = sb->s_fs_info;
-
-	msblk->stream.workspace = kmalloc(zlib_inflate_workspacesize(),
-		GFP_KERNEL);
-	if (msblk->stream.workspace == NULL) {
-		ERROR("Failed to allocate zlib workspace\n");
-		goto failure;
-	}
 
 	sblk = kzalloc(sizeof(*sblk), GFP_KERNEL);
 	if (sblk == NULL) {
 		ERROR("Failed to allocate squashfs_super_block\n");
+		err = -ENOMEM;
 		goto failure;
 	}
 
+#ifdef CONFIG_SQUASHFS_MTD
+	msblk->devblksize = 1024;
+#else
 	msblk->devblksize = sb_min_blocksize(sb, BLOCK_SIZE);
+#endif
 	msblk->devblksize_log2 = ffz(~msblk->devblksize);
 
 	mutex_init(&msblk->read_data_mutex);
@@ -123,17 +193,41 @@ static int squashfs_fill_super(struct super_block *sb, void *data, int silent)
 	/* Check it is a SQUASHFS superblock */
 	sb->s_magic = le32_to_cpu(sblk->s_magic);
 	if (sb->s_magic != SQUASHFS_MAGIC) {
-		if (!silent)
+		if (!silent) {
+#ifdef CONFIG_BLOCK
 			ERROR("Can't find a SQUASHFS superblock on %s\n",
 						bdevname(sb->s_bdev, b));
+#elif defined CONFIG_SQUASHFS_MTD
+			ERROR("Can't find a SQUASHFS superblock on %s\n",
+						sb->s_mtd->name);
+#endif
+		}
 		err = -EINVAL;
 		goto failed_mount;
 	}
 
+	/* Check block size for sanity */
+	msblk->block_size = le32_to_cpu(sblk->block_size);
+	if (msblk->block_size > SQUASHFS_FILE_MAX_SIZE)
+		goto failed_mount;
+
 	/* Check the MAJOR & MINOR versions and compression type */
 	err = supported_squashfs_filesystem(le16_to_cpu(sblk->s_major),
-			le16_to_cpu(sblk->s_minor),
-			le16_to_cpu(sblk->compression));
+			le16_to_cpu(sblk->s_minor));
+	if (err < 0)
+		goto failed_mount;
+
+	switch(le16_to_cpu(sblk->compression)) {
+	case ZLIB_COMPRESSION:
+		err = squashfs_setup_zlib(msblk);
+		break;
+	case LZMA_COMPRESSION:
+		err = squashfs_setup_lzma(msblk);
+		break;
+	default:
+		err = -EINVAL;
+		break;
+	}
 	if (err < 0)
 		goto failed_mount;
 
@@ -149,13 +243,13 @@ static int squashfs_fill_super(struct super_block *sb, void *data, int silent)
 	/* Check the filesystem does not extend beyond the end of the
 	   block device */
 	msblk->bytes_used = le64_to_cpu(sblk->bytes_used);
+
+#ifdef CONFIG_SQUASHFS_MTD
+        if(msblk->bytes_used < 0  || msblk->bytes_used > msblk->mtd->size)
+#else
 	if (msblk->bytes_used < 0 || msblk->bytes_used >
 			i_size_read(sb->s_bdev->bd_inode))
-		goto failed_mount;
-
-	/* Check block size for sanity */
-	msblk->block_size = le32_to_cpu(sblk->block_size);
-	if (msblk->block_size > SQUASHFS_FILE_MAX_SIZE)
+#endif
 		goto failed_mount;
 
 	/*
@@ -182,7 +276,11 @@ static int squashfs_fill_super(struct super_block *sb, void *data, int silent)
 	msblk->inodes = le32_to_cpu(sblk->inodes);
 	flags = le16_to_cpu(sblk->flags);
 
+#ifdef CONFIG_BLOCK
 	TRACE("Found valid superblock on %s\n", bdevname(sb->s_bdev, b));
+#elif defined CONFIG_SQUASHSFS_MTD
+	TRACE("Found valid superblock on %s\n", sb->s_mtd->name);
+#endif
 	TRACE("Inodes are %scompressed\n", SQUASHFS_UNCOMPRESSED_INODES(flags)
 				? "un" : "");
 	TRACE("Data is %scompressed\n", SQUASHFS_UNCOMPRESSED_DATA(flags)
@@ -289,23 +387,19 @@ allocate_root:
 	return 0;
 
 failed_mount:
+	if (msblk->tfm)
+		crypto_free_pcomp(msblk->tfm);
 	squashfs_cache_delete(msblk->block_cache);
 	squashfs_cache_delete(msblk->fragment_cache);
 	squashfs_cache_delete(msblk->read_page);
 	kfree(msblk->inode_lookup_table);
 	kfree(msblk->fragment_index);
 	kfree(msblk->id_table);
-	kfree(msblk->stream.workspace);
-	kfree(sb->s_fs_info);
-	sb->s_fs_info = NULL;
 	kfree(sblk);
-	return err;
-
 failure:
-	kfree(msblk->stream.workspace);
 	kfree(sb->s_fs_info);
 	sb->s_fs_info = NULL;
-	return -ENOMEM;
+	return err;
 }
 
 
@@ -349,7 +443,7 @@ static void squashfs_put_super(struct super_block *sb)
 		kfree(sbi->id_table);
 		kfree(sbi->fragment_index);
 		kfree(sbi->meta_index);
-		kfree(sbi->stream.workspace);
+		crypto_free_pcomp(sbi->tfm);
 		kfree(sb->s_fs_info);
 		sb->s_fs_info = NULL;
 	}
@@ -357,13 +451,244 @@ static void squashfs_put_super(struct super_block *sb)
 	unlock_kernel();
 }
 
+#ifdef CONFIG_SQUASHFS_MTD
+static void
+squashfs_kill_sb(struct super_block *sb)
+{
+	struct squashfs_sb_info *c = sb->s_fs_info;
+	generic_shutdown_super(sb);
+	put_mtd_device(c->mtd);
+	kfree(c);
+}
+
+static int
+squashfs_sb_compare(struct super_block *sb, void *data)
+{
+	struct squashfs_sb_info *p = (struct squashfs_sb_info *)data;
+	struct squashfs_sb_info *c = sb->s_fs_info;
+
+	/*
+	 * The superblocks are considered to be equivalent if the
+	 * underlying MTD device is the same one
+	 */
+	if (c->mtd == p->mtd) {
+		printk("%s: match on device %d (\"%s\")\n",
+			__func__, p->mtd->index, p->mtd->name);
+		return 1;
+	} else {
+		printk("%s: No match, device %d (\"%s\"), device %d (\"%s\")\n",
+			__func__, c->mtd->index, c->mtd->name,
+			p->mtd->index, p->mtd->name);
+		return 0;
+	}
+}
+
+static int
+squashfs_sb_set(struct super_block *sb, void *data)
+{
+	struct squashfs_sb_info *p = data;
+
+	/*
+	 * For persistence of NFS exports etc. we use the same s_dev
+	 * each time we mount the device, don't just use an anonymous
+	 * device
+	 */
+	TRACE(	"%s(): assigning p to sb->s_fs_info p = 0x%p p->mtd = 0x%p "
+		"p->mtd->name:%s %p\n", __func__, p, p->mtd, p->mtd->name, sb);
+	sb->s_fs_info = p;
+	sb->s_dev = MKDEV(MTD_BLOCK_MAJOR, p->mtd->index);
+
+	return 0;
+}
+
+static struct super_block *
+squashfs_get_sb_mtd(
+	struct file_system_type	*fs_type,
+	int			flags,
+	const char		*dev_name,
+	void			*data,
+	struct mtd_info		*mtd)
+{
+	struct super_block *sb;
+	struct squashfs_sb_info *c;
+	int ret;
+
+	c = kmalloc(sizeof(struct squashfs_sb_info), GFP_KERNEL);
+
+	if (!c)
+		return ERR_PTR(-ENOMEM);
+	memset(c, 0, sizeof(*c));
+
+	c->mtd = mtd;
+
+	TRACE("%s(): c = 0x%p c->mtd = 0x%p\n", __func__, c, c->mtd);
+
+	sb = sget(fs_type, squashfs_sb_compare, squashfs_sb_set, c);
+
+	if (IS_ERR(sb))
+		goto out_put;
+
+	if (sb->s_root) {
+		/* New mountpoint for JFFS2 which is already mounted */
+		printk(	"%s(): Device %d (\"%s\") is already mounted\n",
+			__func__, c->mtd->index, c->mtd->name);
+		goto out_put;
+	}
+
+	printk("%s(): New superblock for device %d (\"%s\")\n",
+		__func__, mtd->index, mtd->name);
+
+	/*
+	 * Initialize squashfs superblock locks, the further initialization
+	 * will be done later
+	 */
+
+	ret = squashfs_fill_super(sb, data, (flags & MS_VERBOSE) ? 1 : 0);
+
+	if (ret) {
+		/* Failure case... */
+		up_write(&sb->s_umount);
+		deactivate_super(sb);
+		return ERR_PTR(ret);
+	}
+
+	sb->s_flags |= MS_ACTIVE;
+	return sb;
+
+out_put:
+	kfree(c);
+	put_mtd_device(mtd);
+	return sb;
+}
+
+static struct super_block *
+squashfs_get_sb_mtdnr(
+	struct file_system_type	*fs_type,
+	int			flags,
+	const char		*dev_name,
+	void			*data,
+	int			mtdnr)
+{
+	struct mtd_info *mtd;
+
+	//printk("%s(): dev_name = %s mtdnr=%d\n", __func__, dev_name, mtdnr);
+	mtd = get_mtd_device(NULL, mtdnr);
+	if (!mtd) {
+		printk(	"%s(): MTD device #%u doesn't appear to exist\n",
+			__func__,  mtdnr);
+		return ERR_PTR(-EINVAL);
+	}
+
+	//printk(	"%s(): calling squashfs_get_sb_mtd, mtd->name: %s "
+	//	"mtd->index: %d\n", __func__, mtd->name, mtd->index);
+	return squashfs_get_sb_mtd(fs_type, flags, dev_name, data, mtd);
+}
+#endif /* CONFIG_SQUASHFS_MTD */
 
 static int squashfs_get_sb(struct file_system_type *fs_type, int flags,
 				const char *dev_name, void *data,
 				struct vfsmount *mnt)
 {
+#ifdef CONFIG_SQUASHFS_MTD
+	struct super_block	*sb;
+	int			err, mtdnr;
+	struct nameidata	nd;
+	struct mtd_info		*mtd;
+
+
+	if (dev_name[0] == 'm' && dev_name[1] == 't' && dev_name[2] == 'd') {
+		/* Probably mounting without the blkdev crap */
+		if (dev_name[3] == ':') {
+			for (mtdnr = 0; mtdnr < MAX_MTD_DEVICES; mtdnr++) {
+				mtd = get_mtd_device(NULL, mtdnr);
+				if (mtd) {
+					if (!strcmp(mtd->name, dev_name+4)) {
+						sb = squashfs_get_sb_mtd(
+							fs_type, flags,
+							dev_name, data, mtd);
+						if (!IS_ERR(sb)) {
+							simple_set_mnt(mnt, sb);
+							err = 0;
+						} else {
+							err = -EIO;
+						}
+						put_mtd_device(mtd);
+						return err;
+					}
+					put_mtd_device(mtd);
+				}
+			}
+			printk("%s(): MTD device with name \"%s\" not found.\n",
+				__func__, dev_name+4);
+		} else if (isdigit(dev_name[3])) {
+			/* Mount by MTD device number name */
+			char *endptr;
+
+			mtdnr = simple_strtoul(dev_name+3, &endptr, 0);
+			if (!*endptr) {
+				/* It was a valid number */
+				printk("%s(): mtd%%d, mtdnr %d\n",
+					__func__, mtdnr);
+				sb = squashfs_get_sb_mtdnr(fs_type, flags,
+							dev_name, data, mtdnr);
+				if (!IS_ERR(sb)) {
+					simple_set_mnt(mnt, sb);
+					return 0;
+				} else {
+					return -EIO;
+				}
+			}
+		}
+	}
+
+	/*
+	 * Try the old way - the hack where we allowed users to mount
+         * /dev/mtdblock$(n) but didn't actually _use_ the blkdev
+	 */
+
+	err = path_lookup(dev_name, LOOKUP_FOLLOW, &nd);
+
+	/* printk(KERN_DEBUG "%s(): path_lookup() returned %d, inode %p\n",
+		__func__, err, nd.dentry->d_inode); */
+
+	if (err)
+		return err;
+
+	err = -EINVAL;
+
+	if (!S_ISBLK(nd.path.dentry->d_inode->i_mode))
+		goto out;
+
+	if (nd.path.mnt->mnt_flags & MNT_NODEV) {
+		err = -EACCES;
+		goto out;
+	}
+
+	if (imajor(nd.path.dentry->d_inode) != MTD_BLOCK_MAJOR) {
+		if (!(flags & MS_VERBOSE)) /* Yes I mean this. Strangely */
+			printk(	"Attempt to mount non-MTD device \"%s\" "
+				"as squashfs\n", dev_name);
+		goto out;
+	}
+
+	mtdnr = iminor(nd.path.dentry->d_inode);
+	// not needed for 2.6.31?? path_release(&nd);
+
+	sb = squashfs_get_sb_mtdnr(fs_type, flags, dev_name, data, mtdnr);
+
+	if (!IS_ERR(sb)) {
+		simple_set_mnt(mnt, sb);
+		return 0;
+	} else {
+		return -EIO;
+	}
+out:
+	// not needed for 2.6.31?? path_release(&nd);
+	return err;
+#else
 	return get_sb_bdev(fs_type, flags, dev_name, data, squashfs_fill_super,
 				mnt);
+#endif
 }
 
 
@@ -435,12 +760,19 @@ static void squashfs_destroy_inode(struct inode *inode)
 	kmem_cache_free(squashfs_inode_cachep, squashfs_i(inode));
 }
 
+#ifdef CONFIG_SQUASHFS_MTD
+static void squashfs_kill_sb(struct super_block *sb);
+#endif
 
 static struct file_system_type squashfs_fs_type = {
 	.owner = THIS_MODULE,
 	.name = "squashfs",
 	.get_sb = squashfs_get_sb,
+#ifdef CONFIG_SQUASHFS_MTD
+	.kill_sb = squashfs_kill_sb,
+#else
 	.kill_sb = kill_block_super,
+#endif
 	.fs_flags = FS_REQUIRES_DEV
 };
 

@@ -1,4 +1,4 @@
-/* $Id: bugs.h,v 1.2 2001/01/17 17:03:18 bjornw Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/bugs.h#1 $
  *
  *  include/asm-cris/bugs.h
  *

@@ -34,8 +34,11 @@
 #include "epautoconf.c"
 
 #include "u_audio.c"
+#ifdef CONFIG_MACH_QCA955x
+#include "f_audio_basic.c"
+#else
 #include "f_audio.c"
-
+#endif
 /*-------------------------------------------------------------------------*/
 
 /* DO NOT REUSE THESE IDs with a protocol-incompatible driver!!  Ever!!
@@ -63,8 +66,10 @@ static struct usb_device_descriptor device_desc = {
 	 * we support.  (As does bNumConfigurations.)  These values can
 	 * also be overridden by module parameters.
 	 */
-	.idVendor =		__constant_cpu_to_le16(AUDIO_VENDOR_NUM),
-	.idProduct =		__constant_cpu_to_le16(AUDIO_PRODUCT_NUM),
+	.idVendor =		__constant_cpu_to_le16(0),
+	.idProduct =		__constant_cpu_to_le16(0),
+//	.idVendor =		__constant_cpu_to_le16(AUDIO_VENDOR_NUM),
+//	.idProduct =		__constant_cpu_to_le16(AUDIO_PRODUCT_NUM),
 	/* .bcdDevice = f(hardware) */
 	/* .iManufacturer = DYNAMIC */
 	/* .iProduct = DYNAMIC */

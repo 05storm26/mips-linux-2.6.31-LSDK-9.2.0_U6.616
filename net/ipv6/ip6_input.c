@@ -50,6 +50,13 @@ inline int ip6_rcv_finish( struct sk_buff *skb)
 {
 	if (skb_dst(skb) == NULL)
 		ip6_route_input(skb);
+#ifdef	CONFIG_MAPPING
+        struct dst_entry *rt = skb_dst(skb);
+	if ((rt == NULL) || (rt->mapping)) {	/* To free the old sk_buff */
+		kfree_skb(skb);
+		return NET_RX_DROP;
+	}
+#endif
 
 	return dst_input(skb);
 }

@@ -710,7 +710,7 @@ ipmr_cache_unresolved(struct net *net, vifi_t vifi, struct sk_buff *skb)
 		 *	Create a new entry if allowable
 		 */
 
-		if (atomic_read(&net->ipv4.cache_resolve_queue_len) >= 10 ||
+		if (atomic_read(&net->ipv4.cache_resolve_queue_len) >= 20 ||
 		    (c = ipmr_cache_alloc_unres(net)) == NULL) {
 			spin_unlock_bh(&mfc_unres_lock);
 

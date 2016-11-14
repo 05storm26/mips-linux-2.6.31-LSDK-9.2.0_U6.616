@@ -1,4 +1,4 @@
-/* $Id: icn.h,v 1.30.6.5 2001/09/23 22:24:55 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/icn/icn.h#1 $
  *
  * ISDN lowlevel-module for the ICN active ISDN-Card.
  *

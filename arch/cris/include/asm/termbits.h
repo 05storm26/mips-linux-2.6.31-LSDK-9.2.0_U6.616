@@ -1,4 +1,4 @@
-/* $Id: termbits.h,v 1.1 2000/07/10 16:32:31 bjornw Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/termbits.h#1 $ */
 
 #ifndef __ARCH_ETRAX100_TERMBITS_H__
 #define __ARCH_ETRAX100_TERMBITS_H__

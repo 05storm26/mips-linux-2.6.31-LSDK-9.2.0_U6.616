@@ -1,4 +1,4 @@
-/*  $Id$
+/*  $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/aha1740.c#1 $
  *  1993/03/31
  *  linux/kernel/aha1740.c
  *

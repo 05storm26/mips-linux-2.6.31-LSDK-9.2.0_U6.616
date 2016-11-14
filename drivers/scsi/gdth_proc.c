@@ -1,5 +1,5 @@
 /* gdth_proc.c 
- * $Id: gdth_proc.c,v 1.43 2006/01/11 16:15:00 achim Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/gdth_proc.c#1 $
  */
 
 #include <linux/completion.h>

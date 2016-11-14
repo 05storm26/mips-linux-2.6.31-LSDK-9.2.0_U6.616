@@ -15,7 +15,9 @@
 #include "op_impl.h"
 
 extern struct op_mips_model op_model_mipsxx_ops __attribute__((weak));
+#ifndef CONFIG_OPROFILE_WASP
 extern struct op_mips_model op_model_rm9000_ops __attribute__((weak));
+#endif
 
 static struct op_mips_model *model;
 
@@ -89,10 +91,11 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
 	case CPU_R14000:
 		lmodel = &op_model_mipsxx_ops;
 		break;
-
+#ifndef CONFIG_OPROFILE_WASP
 	case CPU_RM9000:
 		lmodel = &op_model_rm9000_ops;
 		break;
+#endif
 	};
 
 	if (!lmodel)

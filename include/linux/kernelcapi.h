@@ -1,5 +1,5 @@
 /*
- * $Id: kernelcapi.h,v 1.8.6.2 2001/02/07 11:31:31 kai Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/kernelcapi.h#1 $
  * 
  * Kernel CAPI 2.0 Interface for Linux
  * 

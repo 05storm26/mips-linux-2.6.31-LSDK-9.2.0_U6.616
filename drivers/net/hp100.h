@@ -1,7 +1,7 @@
 /*
  * hp100.h: Hewlett Packard HP10/100VG ANY LAN ethernet driver for Linux.
  *
- * $Id: hp100.h,v 1.51 1997/04/08 14:26:42 floeff Exp floeff $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/hp100.h#1 $
  *
  * Authors:  Jaroslav Kysela, <perex@pf.jcu.cz>
  *           Siegfried Loeffler <floeff@tunix.mathematik.uni-stuttgart.de>

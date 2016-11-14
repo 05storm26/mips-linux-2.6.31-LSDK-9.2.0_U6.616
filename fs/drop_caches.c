@@ -8,6 +8,17 @@
 #include <linux/writeback.h>
 #include <linux/sysctl.h>
 #include <linux/gfp.h>
+#include <linux/timer.h>
+#include <linux/workqueue.h>
+
+#define CACHE_CLEANUP_TIMEOUT (4 * HZ)
+
+static struct timer_list cache_cleanup_timer = {
+    .function = NULL,
+    .data = 0,
+};
+
+static struct work_struct drop_cache_workq;
 
 /* A global variable is a bit ugly, but it keeps the code simple */
 int sysctl_drop_caches;
@@ -62,15 +73,41 @@ static void drop_slab(void)
 	} while (nr_objects > 10);
 }
 
+static void drop_caches_timer_handler(void)
+{
+        schedule_work(&drop_cache_workq);
+}
+
+static void drop_caches(void *arg)
+{
+        //printk("**** %s: starting the cache cleanup ...**** \n", __func__);
+        drop_pagecache();
+        drop_slab();
+        mod_timer(&cache_cleanup_timer, (jiffies + CACHE_CLEANUP_TIMEOUT));
+}
+
 int drop_caches_sysctl_handler(ctl_table *table, int write,
 	struct file *file, void __user *buffer, size_t *length, loff_t *ppos)
 {
 	proc_dointvec_minmax(table, write, file, buffer, length, ppos);
+        if (cache_cleanup_timer.function == NULL)
+        {
+            init_timer(&cache_cleanup_timer);
+            INIT_WORK(&drop_cache_workq, (void *)drop_caches);
+            cache_cleanup_timer.expires = (jiffies + CACHE_CLEANUP_TIMEOUT);
+            cache_cleanup_timer.function = (void *)drop_caches_timer_handler;
+            printk("**** %s: all done timer added ...**** \n", __func__);
+            add_timer(&cache_cleanup_timer);
+        }
+        else
+            *length = 0;
+#if 0
 	if (write) {
 		if (sysctl_drop_caches & 1)
 			drop_pagecache();
 		if (sysctl_drop_caches & 2)
 			drop_slab();
 	}
+#endif
 	return 0;
 }

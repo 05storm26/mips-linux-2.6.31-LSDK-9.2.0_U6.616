@@ -1,4 +1,4 @@
-/* $Id: scc.h,v 1.29 1997/04/02 14:56:45 jreuter Exp jreuter $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/scc.h#1 $ */
 
 #ifndef	_SCC_H
 #define	_SCC_H

@@ -163,7 +163,7 @@ static int playback_default_hw_params(struct gaudio_snd_dev *snd)
 
 	return 0;
 }
-
+#if 0
 /**
  * Playback audio buffer data by ALSA PCM device
  */
@@ -211,7 +211,7 @@ static int u_audio_get_playback_rate(struct gaudio *card)
 {
 	return card->playback.rate;
 }
-
+#endif
 /**
  * Open ALSA PCM and control device files
  * Initial the PCM or control device

@@ -12,7 +12,7 @@
 *! (C) Copyright 1998, 1999 Axis Communications AB, LUND, SWEDEN
 *!
 *!**************************************************************************/
-/* $Id: eshlibld.h,v 1.2 2001/02/23 13:47:33 bjornw Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/eshlibld.h#1 $ */
 
 #ifndef _cris_relocate_h
 #define _cris_relocate_h

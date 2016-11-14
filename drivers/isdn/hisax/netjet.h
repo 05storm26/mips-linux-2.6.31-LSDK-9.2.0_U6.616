@@ -1,4 +1,4 @@
-/* $Id: netjet.h,v 2.8.2.2 2004/01/12 22:52:28 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/netjet.h#1 $
  *
  * NETjet common header file
  *

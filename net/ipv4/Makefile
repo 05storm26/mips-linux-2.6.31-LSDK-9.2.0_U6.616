@@ -13,6 +13,7 @@ obj-y     := route.o inetpeer.o protocol.o \
 	     fib_frontend.o fib_semantics.o \
 	     inet_fragment.o
 
+obj-$(CONFIG_TP_MULTICAST) += tp_mroute.o
 obj-$(CONFIG_SYSCTL) += sysctl_net_ipv4.o
 obj-$(CONFIG_IP_FIB_HASH) += fib_hash.o
 obj-$(CONFIG_IP_FIB_TRIE) += fib_trie.o
@@ -52,3 +53,4 @@ obj-$(CONFIG_NETLABEL) += cipso_ipv4.o
 
 obj-$(CONFIG_XFRM) += xfrm4_policy.o xfrm4_state.o xfrm4_input.o \
 		      xfrm4_output.o
+obj-$(CONFIG_MAPPING) += mapping.o proto_trans.o

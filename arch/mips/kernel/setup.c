@@ -442,7 +442,8 @@ static void __init bootmem_init(void)
  */
 
 static int usermem __initdata = 0;
-
+/* because we parse memsize from bootloader,so we do not parse mem option from linux kernel command line by lyj, 12Oct11 */
+#if 0
 static int __init early_parse_mem(char *p)
 {
 	unsigned long start, size;
@@ -465,7 +466,7 @@ static int __init early_parse_mem(char *p)
 	return 0;
 }
 early_param("mem", early_parse_mem);
-
+#endif
 static void __init arch_mem_init(char **cmdline_p)
 {
 	extern void plat_mem_setup(void);

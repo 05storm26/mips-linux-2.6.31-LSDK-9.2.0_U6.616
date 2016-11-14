@@ -1,4 +1,4 @@
-/* $Id: avm_cs.c,v 1.4.6.3 2001/09/23 22:24:33 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/avm/avm_cs.c#1 $
  *
  * A PCMCIA client driver for AVM B1/M1/M2
  *

@@ -32,6 +32,18 @@ config PCI_LEGACY
 	  option serves to include/exclude only a few drivers that are
 	  still using this API.
 
+config PCI_INIT_IN_MONITOR
+	bool "PCI Initialized in bootrom"
+	depends on PCI
+	help
+	  This flag indicates that the PCI bus was initialized in the bootrom
+	  monitor, and that further hardware initialization should not be
+	  performed.  Examples are when u-boot's PCI functions are used to
+	  pre-initialize hardware at bootup time.
+	  
+	  Note that bus scan should still be performed to configure the PCI
+	  devices as required for the Linux system.
+
 config PCI_DEBUG
 	bool "PCI Debugging"
 	depends on PCI && DEBUG_KERNEL

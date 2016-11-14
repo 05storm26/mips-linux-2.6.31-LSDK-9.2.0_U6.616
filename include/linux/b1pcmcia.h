@@ -1,4 +1,4 @@
-/* $Id: b1pcmcia.h,v 1.1.8.2 2001/09/23 22:25:05 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/b1pcmcia.h#1 $
  *
  * Exported functions of module b1pcmcia to be called by
  * avm_cs card services module.

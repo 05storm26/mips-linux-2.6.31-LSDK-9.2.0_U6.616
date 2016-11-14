@@ -1,4 +1,4 @@
-/* $Id: netjet.c,v 1.29.2.4 2004/02/11 13:21:34 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/netjet.c#1 $
  *
  * low level stuff for Traverse Technologie NETJet ISDN cards
  *

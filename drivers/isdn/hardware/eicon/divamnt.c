@@ -1,4 +1,4 @@
-/* $Id: divamnt.c,v 1.32.6.10 2005/02/11 19:40:25 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/divamnt.c#1 $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * Maint module
@@ -22,7 +22,7 @@
 #include "divasync.h"
 #include "debug_if.h"
 
-static char *main_revision = "$Revision: 1.32.6.10 $";
+static char *main_revision = "$Revision: #1 $";
 
 static int major;
 

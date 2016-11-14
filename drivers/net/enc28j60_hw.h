@@ -1,7 +1,7 @@
 /*
  * enc28j60_hw.h: EDTP FrameThrower style enc28j60 registers
  *
- * $Id: enc28j60_hw.h,v 1.9 2007/12/14 11:59:16 claudio Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/enc28j60_hw.h#1 $
  */
 
 #ifndef _ENC28J60_HW_H

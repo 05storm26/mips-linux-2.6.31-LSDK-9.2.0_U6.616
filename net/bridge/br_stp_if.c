@@ -212,6 +212,7 @@ void br_stp_recalculate_bridge_id(struct net_bridge *br)
 	const unsigned char *br_mac_zero =
 			(const unsigned char *)br_mac_zero_aligned;
 	const unsigned char *addr = br_mac_zero;
+
 	struct net_bridge_port *p;
 
 	/* user has chosen a value so keep it */
@@ -219,8 +220,9 @@ void br_stp_recalculate_bridge_id(struct net_bridge *br)
 		return;
 
 	list_for_each_entry(p, &br->port_list, list) {
+		/* br0 use the max addr, so please make sure the max addr is the right lan addr */
 		if (addr == br_mac_zero ||
-		    memcmp(p->dev->dev_addr, addr, ETH_ALEN) < 0)
+		    memcmp(p->dev->dev_addr, addr, ETH_ALEN) /*<*/> 0)	/* record the max -- lsz 090304 */
 			addr = p->dev->dev_addr;
 
 	}

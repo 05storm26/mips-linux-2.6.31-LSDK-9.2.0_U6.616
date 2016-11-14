@@ -49,6 +49,12 @@ enum zlib_decomp_params {
 
 #define ZLIB_DECOMP_MAX	(__ZLIB_DECOMP_MAX - 1)
 
+enum unlzma_decomp_params {
+	UNLZMA_DECOMP_OUT_BUFFERS = 1, /* naximum number of output buffers */
+	__UNLZMA_DECOMP_MAX,
+};
+#define UNLZMA_DECOMP_MAX	(__UNLZMA_DECOMP_MAX - 1)
+
 
 struct crypto_pcomp {
 	struct crypto_tfm base;

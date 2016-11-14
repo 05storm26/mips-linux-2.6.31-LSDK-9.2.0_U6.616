@@ -1,4 +1,4 @@
-/* $Id: isar.c,v 1.22.2.6 2004/02/11 13:21:34 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isar.c#1 $
  *
  * isar.c   ISAR (Siemens PSB 7110) specific routines
  *

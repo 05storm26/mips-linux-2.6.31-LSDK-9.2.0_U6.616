@@ -1,4 +1,4 @@
-/* $Id: md.h,v 1.1 1997/12/15 15:11:48 jj Exp $
+/* $Id: //depot/sw/releases/9.5.1/linux/kernels/mips-linux-2.6.31/arch/alpha/include/asm/md.h#1 $
  * md.h: High speed xor_block operation for RAID4/5 
  *
  */

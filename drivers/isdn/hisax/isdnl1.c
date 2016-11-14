@@ -1,4 +1,4 @@
-/* $Id: isdnl1.c,v 2.46.2.5 2004/02/11 13:21:34 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isdnl1.c#1 $
  *
  * common low level stuff for Siemens Chipsetbased isdn cards
  *
@@ -22,7 +22,7 @@
 #include "hisax.h"
 #include "isdnl1.h"
 
-const char *l1_revision = "$Revision: 2.46.2.5 $";
+const char *l1_revision = "$Revision: #1 $";
 
 #define TIMER3_VALUE 7000
 

@@ -86,6 +86,7 @@ header-y += if_cablemodem.h
 header-y += if_fc.h
 header-y += if.h
 header-y += if_hippi.h
+header-y += if_hybrid.h
 header-y += if_infiniband.h
 header-y += if_packet.h
 header-y += if_plip.h

@@ -1,4 +1,4 @@
-/* $Id: isdnloop.h,v 1.5.6.3 2001/09/23 22:24:56 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/isdnloop/isdnloop.h#1 $
  *
  * Loopback lowlevel module for testing of linklevel.
  *

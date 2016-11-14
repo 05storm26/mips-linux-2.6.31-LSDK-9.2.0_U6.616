@@ -1,6 +1,6 @@
 #ifndef GVP11_H
 
-/* $Id: gvp11.h,v 1.4 1997/01/19 23:07:12 davem Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/gvp11.h#1 $
  *
  * Header file for the GVP Series II SCSI controller for Linux
  *

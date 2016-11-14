@@ -1,4 +1,4 @@
-/* $Id: arcofi.c,v 1.14.2.3 2004/01/13 14:31:24 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/arcofi.c#1 $
  *
  * Ansteuerung ARCOFI 2165
  *

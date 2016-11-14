@@ -768,6 +768,12 @@ config CRYPTO_ZLIB
 	help
 	  This is the zlib algorithm.
 
+config CRYPTO_UNLZMA
+	tristate "LZMA decompression"
+	select CRYPTO_PCOMP
+	help
+	  This is the lzma decompression module.
+
 config CRYPTO_LZO
 	tristate "LZO compression algorithm"
 	select CRYPTO_ALGAPI

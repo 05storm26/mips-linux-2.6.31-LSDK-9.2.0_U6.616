@@ -1,4 +1,4 @@
-/* $Id: bkm_ax.h,v 1.5.6.3 2001/09/23 22:24:46 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/bkm_ax.h#1 $
  *
  * low level decls for T-Berkom cards A4T and Scitel Quadro (4*S0, passive)
  *

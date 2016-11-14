@@ -1,7 +1,8 @@
 /* Masquerade.  Simple mapping which alters range to a local IP address
    (depending on route). */
 
-/* (C) 1999-2001 Paul `Rusty' Russell
+/* 9/25/2010, Optimize for strict implementation of Cone, by yingming.yu@atheros.com
+ * (C) 1999-2001 Paul `Rusty' Russell
  * (C) 2002-2006 Netfilter Core Team <coreteam@netfilter.org>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,6 +27,31 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Netfilter Core Team <coreteam@netfilter.org>");
 MODULE_DESCRIPTION("Xtables: automatic-address SNAT");
+
+/*handle NATTYPE Stuff,only if NATTYPE module was defined*/
+#if defined(CONFIG_IP_NF_TARGET_NATTYPE_MODULE)
+    void (*nattype_update_rule)(struct sk_buff *skb, __be32 newsrc);
+/* Registration hooks for nattype. */
+int
+masq_register_nattype(void *nattype_fn)
+{
+    if (!nattype_fn)
+        return -1;
+    nattype_update_rule = nattype_fn;
+    printk("%s: register nattype_update_rule %p\n", __func__,nattype_update_rule);
+	return 0;
+}
+EXPORT_SYMBOL(masq_register_nattype);
+/* Unregistration hooks for nattype. */
+int
+masq_unregister_nattype(void)
+{
+    nattype_update_rule = NULL;
+    printk("%s:unregister nattype_update_rule\n",__func__);
+	return 0;
+}
+EXPORT_SYMBOL(masq_unregister_nattype);
+#endif
 
 /* FIXME: Multiple targets. --RR */
 static bool masquerade_tg_check(const struct xt_tgchk_param *par)
@@ -75,6 +101,12 @@ masquerade_tg(struct sk_buff *skb, const struct xt_target_param *par)
 		printk("MASQUERADE: %s ate my IP address\n", par->out->name);
 		return NF_DROP;
 	}
+
+/*handle NATTYPE Stuff,only if NATTYPE module was defined*/
+#if defined(CONFIG_IP_NF_TARGET_NATTYPE_MODULE)
+    if(nattype_update_rule)
+        nattype_update_rule(skb,newsrc);
+#endif
 
 	nat->masq_index = par->out->ifindex;
 
@@ -134,6 +166,7 @@ static struct notifier_block masq_dev_notifier = {
 static struct notifier_block masq_inet_notifier = {
 	.notifier_call	= masq_inet_event,
 };
+ 
 
 static struct xt_target masquerade_tg_reg __read_mostly = {
 	.name		= "MASQUERADE",
@@ -149,7 +182,9 @@ static struct xt_target masquerade_tg_reg __read_mostly = {
 static int __init masquerade_tg_init(void)
 {
 	int ret;
-
+#if defined(CONFIG_IP_NF_TARGET_NATTYPE_MODULE)
+    nattype_update_rule = NULL;
+#endif
 	ret = xt_register_target(&masquerade_tg_reg);
 
 	if (ret == 0) {

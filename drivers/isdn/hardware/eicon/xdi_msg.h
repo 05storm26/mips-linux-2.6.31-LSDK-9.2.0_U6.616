@@ -1,4 +1,4 @@
-/* $Id: xdi_msg.h,v 1.1.2.2 2001/02/16 08:40:36 armin Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/xdi_msg.h#1 $ */
 
 #ifndef __DIVA_XDI_UM_CFG_MESSSGE_H__
 #define __DIVA_XDI_UM_CFG_MESSAGE_H__

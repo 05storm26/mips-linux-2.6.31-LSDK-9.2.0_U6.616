@@ -1,4 +1,4 @@
-/* $Id: isdnl2.h,v 1.3.6.2 2001/09/23 22:24:49 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isdnl2.h#1 $
  *
  * Layer 2 defines
  *

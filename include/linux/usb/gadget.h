@@ -119,6 +119,9 @@ struct usb_ep_ops {
 
 	int (*fifo_status) (struct usb_ep *ep);
 	void (*fifo_flush) (struct usb_ep *ep);
+	void *(*alloc_buffer)(struct usb_ep *_ep, unsigned bytes, dma_addr_t * dma, gfp_t gfp_flags);
+	void (*free_buffer) (struct usb_ep *_ep, void *buf, dma_addr_t dma,unsigned bytes);
+	
 };
 
 /**

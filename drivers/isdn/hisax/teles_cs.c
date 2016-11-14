@@ -1,4 +1,4 @@
-/* $Id: teles_cs.c,v 1.1.2.2 2004/01/25 15:07:06 keil Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/teles_cs.c#1 $ */
 /*======================================================================
 
     A teles S0 PCMCIA client driver

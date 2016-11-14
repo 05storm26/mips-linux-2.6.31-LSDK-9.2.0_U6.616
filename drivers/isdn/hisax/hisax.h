@@ -1,4 +1,4 @@
-/* $Id: hisax.h,v 2.64.2.4 2004/02/11 13:21:33 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/hisax.h#1 $
  *
  * Basic declarations, defines and prototypes
  *

@@ -1,4 +1,4 @@
-/* $Id: cassini.h,v 1.16 2004/08/17 21:15:16 zaumen Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/cassini.h#1 $
  * cassini.h: Definitions for Sun Microsystems Cassini(+) ethernet driver.
  *
  * Copyright (C) 2004 Sun Microsystems Inc.

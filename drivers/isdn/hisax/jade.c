@@ -1,4 +1,4 @@
-/* $Id: jade.c,v 1.9.2.4 2004/01/14 16:04:48 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/jade.c#1 $
  *
  * JADE stuff (derived from original hscx.c)
  *

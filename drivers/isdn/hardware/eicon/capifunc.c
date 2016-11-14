@@ -1,4 +1,4 @@
-/* $Id: capifunc.c,v 1.61.4.7 2005/02/11 19:40:25 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hardware/eicon/capifunc.c#1 $
  *
  * ISDN interface module for Eicon active cards DIVA.
  * CAPI Interface common functions

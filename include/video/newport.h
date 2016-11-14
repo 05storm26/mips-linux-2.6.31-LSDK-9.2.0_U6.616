@@ -1,4 +1,4 @@
-/* $Id: newport.h,v 1.5 1999/08/04 06:01:51 ulfc Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/video/newport.h#1 $
  *
  * newport.h: Defines and register layout for NEWPORT graphics
  *            hardware.

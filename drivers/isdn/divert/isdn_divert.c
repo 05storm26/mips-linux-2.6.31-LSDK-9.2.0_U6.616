@@ -1,4 +1,4 @@
-/* $Id: isdn_divert.c,v 1.6.6.3 2001/09/23 22:24:36 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/divert/isdn_divert.c#1 $
  *
  * DSS1 main diversion supplementary handling for i4l.
  *

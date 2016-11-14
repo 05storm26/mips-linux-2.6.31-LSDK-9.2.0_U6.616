@@ -18,7 +18,7 @@
  *
  * Copyright (c) 2004 Topspin Communications.  All rights reserved.
  *
- * $Id$
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/if_infiniband.h#1 $
  */
 
 #ifndef _LINUX_IF_INFINIBAND_H

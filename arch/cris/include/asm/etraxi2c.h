@@ -1,4 +1,4 @@
-/* $Id: etraxi2c.h,v 1.1 2001/01/18 15:49:57 bjornw Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/etraxi2c.h#1 $ */
 
 #ifndef _LINUX_ETRAXI2C_H
 #define _LINUX_ETRAXI2C_H

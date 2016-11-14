@@ -1,4 +1,4 @@
-/* $Id: isdn_ppp.h,v 1.1.2.2 2004/01/12 22:37:19 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/i4l/isdn_ppp.h#1 $
  *
  * header for Linux ISDN subsystem, functions for synchronous PPP (linklevel).
  *

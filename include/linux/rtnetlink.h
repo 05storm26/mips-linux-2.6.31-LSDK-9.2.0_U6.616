@@ -167,6 +167,12 @@ struct rtmsg
 	unsigned char		rtm_type;	/* See below	*/
 
 	unsigned		rtm_flags;
+#ifdef	CONFIG_MAPPING
+	unsigned char		rtm_mapping;	/* For mapping */
+	unsigned long		rtm_src_prefix;	/* Mapping src prefix */
+	unsigned long		rtm_dst_prefix;	/* Mapping dst prefix */
+#endif
+	
 };
 
 /* rtm_type */

@@ -42,12 +42,307 @@
 
 /* fill a qtd, returning how much of the buffer we were able to queue up */
 
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+
+#define ATH_SRAM_SIZE		(32 << 10)
+#define ATH_MAX_SIZE_PER_QTD	(16 << 10)
+#define ATH_MAX_SIZE_PER_BUF	( 4 << 10)
+
+#if CONFIG_ATH_USB_SRAM_NUM_IO < 1	|| \
+    CONFIG_ATH_USB_SRAM_NUM_IO > (ATH_SRAM_SIZE / ATH_MAX_SIZE_PER_QTD)
+#	error "Incorrect setting for CONFIG_ATH_USB_SRAM_NUM_IO"
+#endif
+
+#define ATH_BULK_IN_MASK	(0xc0000000u | USB_DIR_IN)
+#define ath_usb_bulk_in(p)	(((p) & ATH_BULK_IN_MASK) == ATH_BULK_IN_MASK)
+#define ath_sram_bulk_in(u)	(ath_usb_bulk_in((u)->pipe) && \
+				 ((u)->transfer_buffer_length > 256))
+#define ATH_SRAM_DMA_BASE	((dma_addr_t)0x1d000000u)
+
+/*
+ * Size of partition for each i/o. The qTD buffer pointers
+ * keep wrapping around within this.
+ */
+#define ATH_SRAM_PART_SIZE	(ATH_SRAM_SIZE / CONFIG_ATH_USB_SRAM_NUM_IO)
+
+typedef struct {
+	struct urb		*urb;
+	unsigned char		*tb;
+	dma_addr_t		start,
+				urb_next,
+				qtd_next;
+	int			pending;
+	//struct ehci_qtd		*qtd;
+	wait_queue_head_t	free;
+} ath_qtd_urb_t;
+
+ath_qtd_urb_t	ath_qtd_urb[CONFIG_ATH_USB_SRAM_NUM_IO];
+
+#define ATH_AQU_SRAM_BASE(i)	(ATH_SRAM_DMA_BASE + (ATH_SRAM_PART_SIZE * i))
+
+DECLARE_WAIT_QUEUE_HEAD(aqu_free);
+#if 1
+static atomic_t aqu_inuse = ATOMIC_INIT(0);
+#define count_read(a)	atomic_read(&a)
+#define count_inc(a)	atomic_inc(&a)
+#define count_dec(a)	atomic_dec(&a)
+#else
+static unsigned aqu_inuse;
+#define count_read(a)	(a)
+#define count_inc(a)	(a ++)
+#define count_dec(a)	(a --)
+#endif
+
+#define ATH_NUM_QTD_URB		(sizeof(ath_qtd_urb) / sizeof(ath_qtd_urb[0]))
+
+// For debug purpose.
+// Can get the address from /proc/kallsyms and do md/mm
+EXPORT_SYMBOL(ath_qtd_urb);
+EXPORT_SYMBOL(aqu_inuse);
+
+#define use_chksum_acc	1
+
+#if use_chksum_acc
+typedef struct {
+	char		*buf;
+
+// PktVoid[31]		Set to 1 to discard the desc and stop the chain      
+// EndOfFrame[27]	Last byte of this buffer marks the end of the segment
+// StrtOfFrame[26]	Start of segment
+// OffType[30:28]	00 : Checksum only, 01 : Rx Dma
+// PktSize[18:0]	Size of packet
+
+	uint32_t	ctrl;
+#define CHKSUM_ACC_PKT_VOID	(1 << 31)
+#define CHKSUM_ACC_EOF		(1 << 27)
+#define CHKSUM_ACC_SOF		(1 << 26)
+#define CHKSUM_ACC_TYPE(a)	(((a) << 28) & (0x7 << 28))
+#define CHKSUM_ACC_PKT_SIZE(x)	(((1 << 19) - 1) & (x))
+
+#define CHKSUM_ACC_TX_CTRL	((CHKSUM_ACC_EOF | CHKSUM_ACC_SOF | CHKSUM_ACC_TYPE(1)) & (~CHKSUM_ACC_PKT_VOID))
+#define CHKSUM_ACC_RX_CTRL	(CHKSUM_ACC_EOF | CHKSUM_ACC_SOF | CHKSUM_ACC_PKT_VOID)
+
+	void		*next;
+	uint32_t 	status;
+	char		pad[16];
+} ath_hwcs_desc_t __attribute__ ((aligned(0x20)));
+
+ath_hwcs_desc_t __cs_tx, __cs_rx;
+
+volatile ath_hwcs_desc_t *cs_tx, *cs_rx;
+
+#define CHKSUM_ACC_DMATX_CONTROL0_ADDRESS		0x18400000
+#define CHKSUM_ACC_DMATX_DESC0_ADDRESS			0x18400010
+#define CHKSUM_ACC_DMATX_DESC_STATUS_ADDRESS		0x18400020
+#define CHKSUM_ACC_DMARX_CONTROL_ADDRESS		0x18400034
+#define CHKSUM_ACC_DMARX_DESC_ADDRESS			0x18400038
+#define CHKSUM_ACC_DMARX_DESC_STATUS_ADDRESS		0x1840003c
+#define CHKSUM_ACC_DMARX_DESC_STATUS_DESC_INTR_MASK	0x00000004
+
+int	first_cs_done;
+
+#endif
+
+static void ath_init_qtd_urb(void)
+{
+	int		i;
+	ath_qtd_urb_t	*aqu;
+
+	// Following is not needed since it is in bss?
+	// memset(ath_qtd_urb, 0, sizeof(ath_qtd_urb));
+
+	aqu = ath_qtd_urb;
+	for (i = 0; (i < ATH_NUM_QTD_URB); i++, aqu++) {
+		init_waitqueue_head(&aqu->free);
+	}
+
+#if use_chksum_acc
+	cs_tx = (void *)KSEG1ADDR(&__cs_tx),
+	cs_rx = (void *)KSEG1ADDR(&__cs_rx);
+	__cs_tx.next = (void *)virt_to_phys(&__cs_tx);
+	__cs_rx.next = (void *)virt_to_phys(&__cs_rx);
+
+	cs_tx->ctrl = CHKSUM_ACC_TX_CTRL;
+	cs_rx->ctrl = CHKSUM_ACC_RX_CTRL;
+#endif
+}
+
+static ath_qtd_urb_t * ath_get_aqu(struct ehci_qtd *qtd)
+{
+	int		i;
+	ath_qtd_urb_t	*aqu;
+	struct urb	*urb = qtd->urb;
+
+retry:
+	aqu = ath_qtd_urb;
+
+	wait_event(aqu_free, (count_read(aqu_inuse) < ATH_NUM_QTD_URB));
+
+	for (i = 0; (i < ATH_NUM_QTD_URB) && aqu->urb; i++, aqu++) {
+		if (aqu->urb->dev == urb->dev) {
+			if (aqu->urb->transfer_buffer == urb->transfer_buffer) {
+				printk("[%d-%s]", aqu - ath_qtd_urb, urb->dev->devpath);
+				return aqu;
+			}
+			wait_event(aqu->free, !aqu->urb);
+			/*
+			 * This device has completed an i/o now. Retry from the
+			 * beginning. Try to give a chance to other devices too
+			 * if any.
+			 */
+			goto retry;
+		}
+	}
+
+	if (i == ATH_NUM_QTD_URB) {
+		goto retry;
+	}
+
+	aqu->urb = urb;
+	aqu->start =
+	aqu->urb_next =
+	aqu->qtd_next = ATH_AQU_SRAM_BASE(i);
+	aqu->pending = urb->transfer_buffer_length;
+	aqu->tb = urb->transfer_buffer;
+	count_inc(aqu_inuse);
+	printk("(%d-%s)", aqu - ath_qtd_urb, urb->dev->devpath);
+	return aqu;
+}
+
+static ath_qtd_urb_t * ath_urb_to_aqu(struct urb *urb)
+{
+	int		i;
+	ath_qtd_urb_t	*aqu;
+
+	aqu = ath_qtd_urb;
+	for (i = 0; (i < ATH_NUM_QTD_URB); i++, aqu++) {
+		if (aqu->urb == urb) {
+			return aqu;
+		}
+	}
+	return NULL;
+}
+
+#define ath_qtd_to_aqu(qtd)	ath_urb_to_aqu(qtd->urb)
+
+#define ath_aqu_to_urb(aqu)	((aqu)->urb)
+
+#define ath_inc_sram_addr(a, f)					\
+do {								\
+	(a)->f += ATH_MAX_SIZE_PER_BUF;				\
+	if ((a)->f >= ((a)->start + ATH_SRAM_PART_SIZE)) {	\
+		(a)->f = (a)->start;				\
+	}							\
+} while (0)
+
+static inline ath_qtd_urb_t * ath_get_sram(struct ehci_qtd *qtd)
+{
+	ath_qtd_urb_t	*aqu = ath_get_aqu(qtd);
+
+	return aqu;
+
+}
+
+#define copy_va(a)	((unsigned char *)KSEG1ADDR(a))
+static inline void ath_purge_aqu(ath_qtd_urb_t *aqu)
+{
+	if (!aqu) {
+		return;
+	}
+	printk("<%d-%s>", aqu - ath_qtd_urb, aqu->urb->dev->devpath);
+	aqu->urb = NULL;
+	aqu->start =
+	aqu->urb_next =
+	aqu->qtd_next = 0;
+	aqu->pending = 0;
+	aqu->tb = NULL;
+	count_dec(aqu_inuse);
+	wake_up(&aqu->free);
+	wake_up(&aqu_free);
+	return;
+}
+static inline int ath_copy_to_urb(ath_qtd_urb_t *aqu, struct ehci_hcd *ehci)
+{
+	dma_addr_t	d = aqu->urb_next;
+	unsigned	len;
+
+	if (aqu->pending > ATH_MAX_SIZE_PER_QTD) {
+		len = ATH_MAX_SIZE_PER_QTD;
+	} else {
+		len = aqu->pending;
+	}
+#if use_chksum_acc
+	if (first_cs_done) {
+		while (!(cs_rx->status & (1 << 31)));
+		first_cs_done = 1;
+	}
+
+	cs_tx->buf = (void *)d;
+	cs_tx->ctrl = CHKSUM_ACC_TX_CTRL | CHKSUM_ACC_PKT_SIZE(len);
+
+	cs_rx->buf = (void *)(aqu->urb->transfer_dma + (aqu->tb - (unsigned char *)aqu->urb->transfer_buffer));
+	cs_rx->ctrl = CHKSUM_ACC_RX_CTRL | CHKSUM_ACC_PKT_SIZE(len);
+
+	ath_reg_wr(CHKSUM_ACC_DMATX_DESC0_ADDRESS, virt_to_phys(&__cs_tx));
+	ath_reg_wr(CHKSUM_ACC_DMARX_DESC_ADDRESS, virt_to_phys(&__cs_rx));
+        ath_reg_wr(CHKSUM_ACC_DMATX_CONTROL0_ADDRESS, 0x1); // enable dma tx
+        ath_reg_wr(CHKSUM_ACC_DMARX_CONTROL_ADDRESS, 0x1); // enable dma rx
+#else
+	memcpy(copy_va(aqu->tb), copy_va(d), len);
+#endif
+	aqu->tb += len;
+	ath_inc_sram_addr(aqu, urb_next);
+	aqu->pending -= len;
+	if (aqu->pending <= 0) {
+		ath_purge_aqu(aqu);
+		return 0;
+	}
+	return 1;
+}
+
+static inline int ath_per_qtd_ioc(struct ehci_qh *qh, struct ehci_hcd *ehci)
+{
+	struct ehci_qtd		*qtd;
+	struct urb		*urb;
+	ath_qtd_urb_t		*aqu;
+	if (list_empty (&qh->qtd_list)) {
+		return 0;
+	}
+
+	qtd = list_first_entry (&qh->qtd_list, struct ehci_qtd, qtd_list);
+	urb = qtd->urb;
+
+	if (!ath_sram_bulk_in(urb)) {
+		return 0;
+	}
+	aqu = ath_urb_to_aqu(urb);
+	if (aqu) {
+		return ath_copy_to_urb(aqu, ehci);
+	}
+	return 0;
+}
+#endif	/* CONFIG_ATH_USB_DMA_TO_SRAM */
+
 static int
 qtd_fill(struct ehci_hcd *ehci, struct ehci_qtd *qtd, dma_addr_t buf,
 		  size_t len, int token, int maxpacket)
 {
 	int	i, count;
 	u64	addr = buf;
+
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+#	define buf_per_qtd	(ATH_MAX_SIZE_PER_QTD / ATH_MAX_SIZE_PER_BUF)
+	ath_qtd_urb_t	*aqu = NULL;
+
+	if (ath_sram_bulk_in(qtd->urb)) {
+		aqu = ath_get_sram(qtd);
+		buf = aqu->qtd_next;
+		ath_inc_sram_addr(aqu, qtd_next);
+	}
+	addr = buf;
+#else
+#	define buf_per_qtd	5
+#endif
 
 	/* one buffer entry per 4K ... first might be short or unaligned */
 	qtd->hw_buf[0] = cpu_to_hc32(ehci, (u32)addr);
@@ -56,16 +351,34 @@ qtd_fill(struct ehci_hcd *ehci, struct ehci_qtd *qtd, dma_addr_t buf,
 	if (likely (len < count))		/* ... iff needed */
 		count = len;
 	else {
-		buf +=  0x1000;
-		buf &= ~0x0fff;
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+		if (aqu) {
+			buf = aqu->qtd_next;
+			ath_inc_sram_addr(aqu, qtd_next);
+		} else {
+#endif
+			buf +=  0x1000;
+			buf &= ~0x0fff;
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+		}
+#endif
 
 		/* per-qtd limit: from 16K to 20K (best alignment) */
-		for (i = 1; count < len && i < 5; i++) {
+		for (i = 1; count < len && i < buf_per_qtd; i++) {
 			addr = buf;
 			qtd->hw_buf[i] = cpu_to_hc32(ehci, (u32)addr);
 			qtd->hw_buf_hi[i] = cpu_to_hc32(ehci,
 					(u32)(addr >> 32));
-			buf += 0x1000;
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+			if (aqu) {
+				buf = aqu->qtd_next;
+				ath_inc_sram_addr(aqu, qtd_next);
+			} else {
+#endif
+				buf += 0x1000;
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+			}
+#endif
 			if ((count + 0x1000) < len)
 				count += 0x1000;
 			else
@@ -76,7 +389,11 @@ qtd_fill(struct ehci_hcd *ehci, struct ehci_qtd *qtd, dma_addr_t buf,
 		if (count != len)
 			count -= (count % maxpacket);
 	}
-	qtd->hw_token = cpu_to_hc32(ehci, (count << 16) | token);
+	qtd->hw_token = cpu_to_hc32(ehci, (count << 16) | token
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+							| QTD_IOC
+#endif
+			);
 	qtd->length = count;
 
 	return count;
@@ -475,20 +792,8 @@ halt:
 			 * we must clear the TT buffer (11.17.5).
 			 */
 			if (unlikely(last_status != -EINPROGRESS &&
-					last_status != -EREMOTEIO)) {
-				/* The TT's in some hubs malfunction when they
-				 * receive this request following a STALL (they
-				 * stop sending isochronous packets).  Since a
-				 * STALL can't leave the TT buffer in a busy
-				 * state (if you believe Figures 11-48 - 11-51
-				 * in the USB 2.0 spec), we won't clear the TT
-				 * buffer in this case.  Strictly speaking this
-				 * is a violation of the spec.
-				 */
-				if (last_status != -EPIPE)
-					ehci_clear_tt_buffer(ehci, qh, urb,
-							token);
-			}
+					last_status != -EREMOTEIO))
+				ehci_clear_tt_buffer(ehci, qh, urb, token);
 		}
 
 		/* if we're removing something not at the queue head,
@@ -575,6 +880,15 @@ static void qtd_list_free (
 		struct ehci_qtd	*qtd;
 
 		qtd = list_entry (entry, struct ehci_qtd, qtd_list);
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+		/*
+		 * Try to catch all error cases where qtd gets freed
+		 * without getting completed via IOC interrupt
+		 */
+		if (ath_sram_bulk_in(qtd->urb)) {
+			ath_purge_aqu(ath_qtd_to_aqu(qtd));
+		}
+#endif /* CONFIG_ATH_USB_DMA_TO_SRAM */
 		list_del (&qtd->qtd_list);
 		ehci_qtd_free (ehci, qtd);
 	}
@@ -802,10 +1116,9 @@ qh_make (
 				 * But interval 1 scheduling is simpler, and
 				 * includes high bandwidth.
 				 */
-				urb->interval = 1;
-			} else if (qh->period > ehci->periodic_size) {
-				qh->period = ehci->periodic_size;
-				urb->interval = qh->period << 3;
+				dbg ("intr period %d uframes, NYET!",
+						urb->interval);
+				goto done;
 			}
 		} else {
 			int		think_time;
@@ -828,10 +1141,6 @@ qh_make (
 					usb_calc_bus_time (urb->dev->speed,
 					is_input, 0, max_packet (maxp)));
 			qh->period = urb->interval;
-			if (qh->period > ehci->periodic_size) {
-				qh->period = ehci->periodic_size;
-				urb->interval = qh->period;
-			}
 		}
 	}
 
@@ -1218,6 +1527,11 @@ rescan:
 	qh = ehci->async->qh_next.qh;
 	if (likely (qh != NULL)) {
 		do {
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+			if (ath_per_qtd_ioc(qh, ehci)) {
+				goto next_qh;
+			}
+#endif /* CONFIG_ATH_USB_DMA_TO_SRAM */
 			/* clean any finished work for this qh */
 			if (!list_empty (&qh->qtd_list)
 					&& qh->stamp != ehci->stamp) {
@@ -1252,7 +1566,9 @@ rescan:
 				else
 					action = TIMER_ASYNC_SHRINK;
 			}
-
+#ifdef CONFIG_ATH_USB_DMA_TO_SRAM
+next_qh:
+#endif
 			qh = qh->qh_next.qh;
 		} while (qh);
 	}

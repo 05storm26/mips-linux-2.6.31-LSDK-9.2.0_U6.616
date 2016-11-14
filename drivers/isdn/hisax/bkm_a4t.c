@@ -1,4 +1,4 @@
-/* $Id: bkm_a4t.c,v 1.22.2.4 2004/01/14 16:04:48 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/bkm_a4t.c#1 $
  *
  * low level stuff for T-Berkom A4T
  *
@@ -20,7 +20,7 @@
 #include <linux/pci.h>
 #include "bkm_ax.h"
 
-static const char *bkm_a4t_revision = "$Revision: 1.22.2.4 $";
+static const char *bkm_a4t_revision = "$Revision: #1 $";
 
 
 static inline u_char

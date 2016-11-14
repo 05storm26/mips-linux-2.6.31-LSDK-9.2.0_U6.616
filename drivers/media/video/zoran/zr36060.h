@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002 Laurent Pinchart <laurent.pinchart@skynet.be>
  *
- * $Id: zr36060.h,v 1.1.1.1.2.3 2003/01/14 21:18:47 rbultje Exp $
+ * $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/media/video/zoran/zr36060.h#1 $
  *
  * ------------------------------------------------------------------------
  *

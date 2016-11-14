@@ -1,0 +1,182 @@
+#
+# GPIO configuration
+#
+
+menu "TP-LINK GPIO Setting Support"
+	depends on MACH_QCA955x
+
+config GPIO_DEBUG
+	bool "GPIO DEBUG turn on/off"
+	default n if MACH_QCA955x
+	default n
+	
+menu "WPS LED"
+config GPIO_JUMPSTART_LED_BIT
+	int "WPS LED Bit"
+	range 0 23
+	default 15 if MACH_QCA955x
+	default 15
+
+config GPIO_JUMPSTART_LED_ON
+	int "WPS LED's value Of On"
+	range 0 1
+	default 0 if MACH_QCA955x
+	default 0
+endmenu
+
+menu "System Ready Status"
+config GPIO_READY_STATUS_BIT
+	int "System Ready Status Led Bit"
+	range 0 23
+	default 14 if MACH_QCA955x
+	default 14
+
+config GPIO_READY_STATUS_ON
+	int "System Ready Status Led's value of On"
+	range 0 1
+	default 0 if MACH_QCA955x
+	default 0
+endmenu
+
+choice
+	prompt "USB type"
+	default SINGLE_USB
+
+config NO_USB
+	bool "NO USB in board"
+	help
+		there are no usb device or host in borad
+
+config SINGLE_USB
+	bool "Only One USB Port"
+	help
+	  Support for One USB Port
+
+config TWO_USB_WITH_HUB
+	bool "Two USB Port with USB HUB"
+	help
+	  Support for Two USB Port with USB HUB
+
+config TWO_USB
+	bool "Two USB Port(host)"
+	help
+	  Support for Two USB Port(host)
+	  
+endchoice
+	  
+menu "USB_PORT0(TMS) LED"
+depends on SINGLE_USB || TWO_USB_WITH_HUB || TWO_USB
+config GPIO_USB_0_LED_BIT
+	int "USB_0(TMS) LED bit"
+	range 0 23
+	default 11 if MACH_QCA955x
+	default 11
+
+config GPIO_USB_0_LED_ON
+	int "GPIO USB_0 Led's value of On"
+	range 0 1
+	default 0 if MACH_QCA955x
+	default 0
+endmenu
+
+menu "USB_PORT1(TMS) LED"
+depends on TWO_USB_WITH_HUB || TWO_USB
+config GPIO_USB_1_LED_BIT
+	int "USB_1(TMS) LED bit"
+	range 0 23
+	default 11 if MACH_QCA955x
+	default 12
+
+config GPIO_USB_1_LED_ON
+	int "GPIO USB_1 Led's value of On"
+	range 0 1
+	default 0 if MACH_QCA955x
+	default 0
+endmenu
+
+menu "USB_PORT0 Switch for 3G"
+depends on SINGLE_USB || TWO_USB_WITH_HUB || TWO_USB
+config GPIO_USB_0_SWITCHFOR3G_BIT
+	int "USB Port0 Switch for 3G bit"
+	range 0 23
+	default 4 if MACH_QCA955x
+	default 21
+endmenu
+
+menu "USB_PORT1 Switch for 3G"
+depends on TWO_USB_WITH_HUB || TWO_USB
+config GPIO_USB_1_SWITCHFOR3G_BIT
+	int "USB Port1 Switch for 3G bit"
+	range 0 23
+	default 4 if MACH_QCA955x
+	default 22
+endmenu
+
+config MUX_RESET_WPS_BUTTON
+	bool "Mux Reset and Wps Button"
+	default y
+
+menu "Reset Factory Default"
+config GPIO_RESET_FAC_BIT
+	int "Reset Factory Default bit"
+	range 0 23
+	default 17 if MACH_QCA955x
+	default 16
+
+config GPIO_FAC_RST_HOLD_TIME
+	int "Reset Key Hold Time for Factory Default"
+	range 1 15
+	default 5
+endmenu
+
+menu "WpsStart Switch" 
+depends on !MUX_RESET_WPS_BUTTON
+config GPIO_WPSSTART_SW_BIT
+	int "WpsStart Switch bit"
+	range 0 23
+	default 17 if MACH_QCA955x
+	default 17
+endmenu
+
+config ENABLE_WIFI_BUTTON
+	bool "Enable Wifi Radio Switch"
+	default n
+
+menu "wifi Radio Switch"
+depends on ENABLE_WIFI_BUTTON
+config GPIO_WIFI_SWITCH_BIT
+	int "wifi Radio Switch"
+	range 0 23
+	default 17 if MACH_QCA955x
+	default 17
+endmenu
+
+config TX_PWR_BUTTON
+	bool "Enable Wifi TXPWR Switch"
+	default n
+
+menu "Wifi TXPWR Switch"
+depends on TX_PWR_BUTTON
+config GPIO_TXPWR_SW_BIT
+	int "Wifi Tx Power Switch"
+	range 0 23
+	default 16 if MACH_QCA955x
+	default 16
+endmenu
+
+menu "TXPWR LED"
+depends on TX_PWR_BUTTON
+config GPIO_TXPWR_LED_BIT
+	int "Wifi TXPWR LED Bit"
+	range 0 23
+	default 11 if MACH_QCA955x
+	default 11
+
+config GPIO_TXPWR_LED_ON
+	int "Wifi TXPWR LED's value Of On"
+	range 0 1
+	default 0 if MACH_QCA955x
+	default 0
+endmenu
+
+endmenu

@@ -51,9 +51,9 @@
 
                 $RCSfile: EplIdentu.c,v $
 
-                $Author: D.Krueger $
+                $Author: lance $
 
-                $Revision: 1.8 $  $Date: 2008/11/21 09:00:38 $
+                $Revision: #1 $  $Date: 2012/02/01 $
 
                 $State: Exp $
 

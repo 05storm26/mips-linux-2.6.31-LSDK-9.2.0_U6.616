@@ -98,6 +98,9 @@
 	mfc0	t0, CP0_STATUS
 	or	t0, ST0_CU0|\set|0x1f|\clr
 	xor	t0, 0x1f|\clr
+#ifdef CONFIG_CPU_HAS_DSP_ASE
+	or      t0, ST0_MX
+#endif
 	mtc0	t0, CP0_STATUS
 	.set	noreorder
 	sll	zero,3				# ehb
@@ -140,6 +143,12 @@ EXPORT(_stext)
 FEXPORT(__kernel_entry)
 	j	kernel_entry
 #endif
+
+#ifdef CONFIG_IMAGE_CMDLINE_HACK
+	.ascii	"CMDLINE:"
+EXPORT(__image_cmdline)
+	.fill	0x400
+#endif /* CONFIG_IMAGE_CMDLINE_HACK */
 
 	__REF
 
@@ -193,7 +202,15 @@ NESTED(kernel_entry, 16, sp)			# kernel entry point
 	PTR_ADDU	sp, $28
 	set_saved_sp	sp, t0, t1
 	PTR_SUBU	sp, 4 * SZREG		# init stack pointer
-
+#ifdef CONFIG_BDI_SWITCH
+    /* Setup the PTE pointers for the Abatron bdiGDB.  */  
+    la t0, bdi_ptbase
+    la t1, swapper_pg_dir
+    sw t1, (t0)
+    addiu t0, 4
+    la t1, pgd_current
+    sw t1, (t0)
+#endif
 	j		start_kernel
 	END(kernel_entry)
 
@@ -229,3 +246,6 @@ NESTED(smp_bootstrap, 16, sp)
 #endif /* CONFIG_SMP */
 
 	__FINIT
+#ifdef CONFIG_BDI_SWITCH
+    .comm bdi_ptbase, SZREG*2, SZREG  /* BDI PTBASE should point to this */
+#endif

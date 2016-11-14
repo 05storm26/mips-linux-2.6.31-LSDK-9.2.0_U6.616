@@ -1,6 +1,7 @@
 
 config HAVE_ARCH_KGDB
 	bool
+	default n
 
 menuconfig KGDB
 	bool "KGDB: kernel debugging with remote gdb"
@@ -58,3 +59,4 @@ config KGDB_TESTS_BOOT_STRING
 	  default of V1F100.
 
 endif # KGDB
+

@@ -220,6 +220,11 @@ struct hc_driver {
 				char *buf, u16 wLength);
 	int	(*bus_suspend)(struct usb_hcd *);
 	int	(*bus_resume)(struct usb_hcd *);
+/* Added to support run time PM */
+#ifdef CONFIG_PM
+        int     (*suspend)(struct usb_hcd *);
+        int     (*resume)(struct usb_hcd *);
+#endif 
 	int	(*start_port_reset)(struct usb_hcd *, unsigned port_num);
 
 		/* force handover of high-speed port to full-speed companion */

@@ -1,4 +1,4 @@
-/* $Id: isdn_audio.h,v 1.1.2.2 2004/01/12 22:37:18 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/i4l/isdn_audio.h#1 $
  *
  * Linux ISDN subsystem, audio conversion and compression (linklevel).
  *

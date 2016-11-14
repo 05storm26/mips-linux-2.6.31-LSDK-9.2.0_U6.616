@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2007/03/13 11:57:46 starvik Exp $
+# $Id: //depot/sw/releases/9.5.1/linux/kernels/mips-linux-2.6.31/arch/cris/arch-v32/mach-a3/Makefile#1 $
 #
 # Makefile for the linux kernel.
 #

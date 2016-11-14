@@ -22,6 +22,7 @@
 #include <asm/cpu-features.h>
 #include <asm/sgidefs.h>
 #include <asm/war.h>
+#include <asm/irqflags.h>
 
 #if _MIPS_SZLONG == 32
 #define SZLONG_LOG 5

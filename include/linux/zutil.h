@@ -8,7 +8,7 @@
    subject to change. Applications should only use zlib.h.
  */
 
-/* @(#) $Id: zutil.h,v 1.1 2000/01/01 03:32:23 davem Exp $ */
+/* @(#) $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/zutil.h#1 $ */
 
 #ifndef _Z_UTIL_H
 #define _Z_UTIL_H

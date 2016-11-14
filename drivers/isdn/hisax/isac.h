@@ -1,4 +1,4 @@
-/* $Id: isac.h,v 1.9.2.2 2004/01/12 22:52:27 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isac.h#1 $
  *
  * ISAC specific defines
  *

@@ -1,4 +1,4 @@
-/* $Id: hfc_2bs0.c,v 1.20.2.6 2004/02/11 13:21:33 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/hfc_2bs0.c#1 $
  *
  * specific routines for CCD's HFC 2BS0
  *

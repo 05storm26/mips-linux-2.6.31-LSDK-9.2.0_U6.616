@@ -6,7 +6,7 @@
    the GNU General Public License.
  */
 
-/* $Id: nsp_message.c,v 1.6 2003/07/26 14:21:09 elca Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/pcmcia/nsp_message.c#1 $ */
 
 static void nsp_message_in(struct scsi_cmnd *SCpnt)
 {

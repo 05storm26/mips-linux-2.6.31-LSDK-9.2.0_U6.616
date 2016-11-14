@@ -29,6 +29,9 @@
 #include <linux/rcupdate.h>
 #include <linux/dmaengine.h>
 #include <linux/hrtimer.h>
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+#include <linux/imq.h>
+#endif
 
 /* Don't change this without changing skb_csum_unnecessary! */
 #define CHECKSUM_NONE 0
@@ -122,8 +125,17 @@ struct sk_buff_head {
 
 struct sk_buff;
 
+#if defined(CONFIG_PRIV_SKB_MEM)
+/*
+ * Atheros doesn't use this facility. This increases the size
+ * of skb and makes it go to the next slab, unnecesarily wasting
+ * memory
+ */
+#define MAX_SKB_FRAGS (2)
+#else
 /* To allow 64K frame to be packed as single skb without frag_list */
 #define MAX_SKB_FRAGS (65536/PAGE_SIZE + 2)
+#endif
 
 typedef struct skb_frag_struct skb_frag_t;
 
@@ -190,7 +202,7 @@ struct skb_shared_info {
 	atomic_t	dataref;
 	unsigned short	nr_frags;
 	unsigned short	gso_size;
-#ifdef CONFIG_HAS_DMA
+#if defined(CONFIG_HAS_DMA) && !defined(CONFIG_PRIV_SKB_MEM)
 	dma_addr_t	dma_head;
 #endif
 	/* Warning: this field is not always filled in (UFO)! */
@@ -201,7 +213,7 @@ struct skb_shared_info {
 	struct sk_buff	*frag_list;
 	struct skb_shared_hwtstamps hwtstamps;
 	skb_frag_t	frags[MAX_SKB_FRAGS];
-#ifdef CONFIG_HAS_DMA
+#if defined(CONFIG_HAS_DMA) && !defined(CONFIG_PRIV_SKB_MEM)
 	dma_addr_t	dma_maps[MAX_SKB_FRAGS];
 #endif
 	/* Intermediate layers must ensure that destructor_arg
@@ -331,6 +343,9 @@ struct sk_buff {
 	 * first. This is owned by whoever has the skb queued ATM.
 	 */
 	char			cb[48];
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	void			*cb_next;
+#endif
 
 	unsigned int		len,
 				data_len;
@@ -363,6 +378,9 @@ struct sk_buff {
 	struct nf_conntrack	*nfct;
 	struct sk_buff		*nfct_reasm;
 #endif
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	struct nf_queue_entry	*nf_queue_entry;
+#endif
 #ifdef CONFIG_BRIDGE_NETFILTER
 	struct nf_bridge_info	*nf_bridge;
 #endif
@@ -386,6 +404,9 @@ struct sk_buff {
 	kmemcheck_bitfield_end(flags2);
 
 	/* 0/13/14 bit hole */
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	__u8			imq_flags:IMQ_F_BITS;
+#endif
 
 #ifdef CONFIG_NET_DMA
 	dma_cookie_t		dma_cookie;
@@ -408,6 +429,12 @@ struct sk_buff {
 				*data;
 	unsigned int		truesize;
 	atomic_t		users;
+#ifdef CONFIG_ATHRS_HW_NAT
+        __u32                   ath_hw_nat_fw_flags;
+#endif
+#if defined(CONFIG_ATHRS17_HNAT) && !defined(CONFIG_ATHRS17_WIFI_HNAT)
+	unsigned int            athrs17_hnat_flags;
+#endif
 };
 
 #ifdef __KERNEL__
@@ -440,6 +467,12 @@ static inline struct rtable *skb_rtable(const struct sk_buff *skb)
 {
 	return (struct rtable *)skb_dst(skb);
 }
+
+
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+extern int skb_save_cb(struct sk_buff *skb);
+extern int skb_restore_cb(struct sk_buff *skb);
+#endif
 
 extern void kfree_skb(struct sk_buff *skb);
 extern void consume_skb(struct sk_buff *skb);
@@ -527,8 +560,26 @@ static inline unsigned char *skb_end_pointer(const struct sk_buff *skb)
 }
 #endif
 
+#if defined(CONFIG_WLAN_4K_SKB_OPT) && !defined(CONFIG_PRIV_SKB_MEM)
+#define skb_could_do_4k_opt(size) \
+	((size) > 4096 -sizeof(struct skb_shared_info) && (size) < 4096 - sizeof(void*))
+	
+static inline struct skb_shared_info * skb_shinfo(const struct sk_buff *skb)
+{
+	struct skb_shared_info *shinfo;
+	unsigned int size;
+	size = skb_end_pointer(skb) - skb->head;
+
+	if (skb_could_do_4k_opt(size))  
+		shinfo = *(struct skb_shared_info **)(skb_end_pointer(skb));
+	else
+		shinfo = (struct skb_shared_info *)(skb_end_pointer(skb));
+	return shinfo;
+}
+#else
 /* Internal */
 #define skb_shinfo(SKB)	((struct skb_shared_info *)(skb_end_pointer(SKB)))
+#endif
 
 static inline struct skb_shared_hwtstamps *skb_hwtstamps(struct sk_buff *skb)
 {
@@ -1761,8 +1812,6 @@ extern int	       skb_copy_datagram_const_iovec(const struct sk_buff *from,
 						     int to_offset,
 						     int size);
 extern void	       skb_free_datagram(struct sock *sk, struct sk_buff *skb);
-extern void	       skb_free_datagram_locked(struct sock *sk,
-						struct sk_buff *skb);
 extern int	       skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
 					 unsigned int flags);
 extern __wsum	       skb_checksum(const struct sk_buff *skb, int offset,
@@ -1976,6 +2025,10 @@ static inline void __nf_copy(struct sk_buff *dst, const struct sk_buff *src)
 	dst->nfct_reasm = src->nfct_reasm;
 	nf_conntrack_get_reasm(src->nfct_reasm);
 #endif
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	dst->imq_flags = src->imq_flags;
+	dst->nf_queue_entry = src->nf_queue_entry;
+#endif
 #ifdef CONFIG_BRIDGE_NETFILTER
 	dst->nf_bridge  = src->nf_bridge;
 	nf_bridge_get(src->nf_bridge);
@@ -2089,5 +2142,6 @@ static inline void skb_forward_csum(struct sk_buff *skb)
 }
 
 bool skb_partial_csum_set(struct sk_buff *skb, u16 start, u16 off);
+
 #endif	/* __KERNEL__ */
 #endif	/* _LINUX_SKBUFF_H */

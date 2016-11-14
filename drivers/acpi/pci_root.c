@@ -1,5 +1,5 @@
 /*
- *  pci_root.c - ACPI PCI Root Bridge Driver ($Revision: 40 $)
+ *  pci_root.c - ACPI PCI Root Bridge Driver ($Revision: #1 $)
  *
  *  Copyright (C) 2001, 2002 Andy Grover <andrew.grover@intel.com>
  *  Copyright (C) 2001, 2002 Paul Diefenbaugh <paul.s.diefenbaugh@intel.com>
@@ -400,17 +400,6 @@ struct pci_dev *acpi_get_pci_dev(acpi_handle handle)
 
 		pbus = pdev->subordinate;
 		pci_dev_put(pdev);
-
-		/*
-		 * This function may be called for a non-PCI device that has a
-		 * PCI parent (eg. a disk under a PCI SATA controller).  In that
-		 * case pdev->subordinate will be NULL for the parent.
-		 */
-		if (!pbus) {
-			dev_dbg(&pdev->dev, "Not a PCI-to-PCI bridge\n");
-			pdev = NULL;
-			break;
-		}
 	}
 out:
 	list_for_each_entry_safe(node, tmp, &device_list, node)

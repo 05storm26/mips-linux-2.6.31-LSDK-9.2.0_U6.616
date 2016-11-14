@@ -109,6 +109,129 @@ config EQUALIZER
 	  To compile this driver as a module, choose M here: the module
 	  will be called eql.  If unsure, say N.
 
+config IMQ
+	tristate "IMQ (intermediate queueing device) support"
+	depends on NETDEVICES && NETFILTER
+	---help---
+	  The IMQ device(s) is used as placeholder for QoS queueing
+	  disciplines. Every packet entering/leaving the IP stack can be
+	  directed through the IMQ device where it's enqueued/dequeued to the
+	  attached qdisc. This allows you to treat network devices as classes
+	  and distribute bandwidth among them. Iptables is used to specify
+	  through which IMQ device, if any, packets travel.
+
+	  More information at: http://www.linuximq.net/
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called imq.  If unsure, say N.
+
+choice
+	prompt "IMQ behavior (PRE/POSTROUTING)"
+	depends on IMQ
+	default IMQ_BEHAVIOR_AB
+	help
+
+		This settings defines how IMQ behaves in respect to its
+		hooking in PREROUTING and POSTROUTING.
+
+		IMQ can work in any of the following ways:
+
+		    PREROUTING   |      POSTROUTING
+		-----------------|-------------------
+		#1  After NAT    |      After NAT
+		#2  After NAT    |      Before NAT
+		#3  Before NAT   |      After NAT
+		#4  Before NAT   |      Before NAT
+
+		The default behavior is to hook before NAT on PREROUTING
+		and after NAT on POSTROUTING (#3).
+
+		This settings are specially usefull when trying to use IMQ
+		to shape NATed clients.
+
+		More information can be found at: www.linuximq.net
+
+		If not sure leave the default settings alone.
+
+config IMQ_BEHAVIOR_AA
+	bool "IMQ AA"
+	help
+		This settings defines how IMQ behaves in respect to its
+		hooking in PREROUTING and POSTROUTING.
+
+		Choosing this option will make IMQ hook like this:
+
+		PREROUTING:   After NAT
+		POSTROUTING:  After NAT
+
+		More information can be found at: www.linuximq.net
+
+		If not sure leave the default settings alone.
+
+config IMQ_BEHAVIOR_AB
+	bool "IMQ AB"
+	help
+		This settings defines how IMQ behaves in respect to its
+		hooking in PREROUTING and POSTROUTING.
+
+		Choosing this option will make IMQ hook like this:
+
+		PREROUTING:   After NAT
+		POSTROUTING:  Before NAT
+
+		More information can be found at: www.linuximq.net
+
+		If not sure leave the default settings alone.
+
+config IMQ_BEHAVIOR_BA
+	bool "IMQ BA"
+	help
+		This settings defines how IMQ behaves in respect to its
+		hooking in PREROUTING and POSTROUTING.
+
+		Choosing this option will make IMQ hook like this:
+
+		PREROUTING:   Before NAT
+		POSTROUTING:  After NAT
+
+		More information can be found at: www.linuximq.net
+
+		If not sure leave the default settings alone.
+
+config IMQ_BEHAVIOR_BB
+	bool "IMQ BB"
+	help
+		This settings defines how IMQ behaves in respect to its
+		hooking in PREROUTING and POSTROUTING.
+
+		Choosing this option will make IMQ hook like this:
+
+		PREROUTING:   Before NAT
+		POSTROUTING:  Before NAT
+
+		More information can be found at: www.linuximq.net
+
+		If not sure leave the default settings alone.
+
+endchoice
+
+config IMQ_NUM_DEVS
+
+	int "Number of IMQ devices"
+	range 2 16
+	depends on IMQ
+	default "16"
+	help
+
+		This settings defines how many IMQ devices will be
+		created.
+
+		The default value is 16.
+
+		More information can be found at: www.linuximq.net
+
+		If not sure leave the default settings alone.
+
 config TUN
 	tristate "Universal TUN/TAP device driver support"
 	select CRC32
@@ -991,12 +1114,12 @@ config SMC911X
 	help
 	  This is a driver for SMSC's LAN911x series of Ethernet chipsets
 	  including the new LAN9115, LAN9116, LAN9117, and LAN9118.
-	  Say Y if you want it compiled into the kernel, 
+	  Say Y if you want it compiled into the kernel,
 	  and read the Ethernet-HOWTO, available from
 	  <http://www.linuxdoc.org/docs.html#howto>.
 
-	  This driver is also available as a module. The module will be 
-	  called smc911x.  If you want to compile it as a module, say M 
+	  This driver is also available as a module. The module will be
+	  called smc911x.  If you want to compile it as a module, say M
 	  here and read <file:Documentation/kbuild/modules.txt>
 
 config SMSC911X
@@ -1466,9 +1589,9 @@ config E100
 	select MII
 	---help---
 	  This driver supports Intel(R) PRO/100 family of adapters.
-	  To verify that your adapter is supported, find the board ID number 
-	  on the adapter. Look for a label that has a barcode and a number 
-	  in the format 123456-001 (six digits hyphen three digits). 
+	  To verify that your adapter is supported, find the board ID number
+	  on the adapter. Look for a label that has a barcode and a number
+	  in the format 123456-001 (six digits hyphen three digits).
 
 	  Use the above information and the Adapter & Driver ID Guide at:
 
@@ -1480,7 +1603,7 @@ config E100
 
 	  <http://appsr.intel.com/scripts-df/support_intel.asp>
 
-	  More specific information on configuring the driver is in 
+	  More specific information on configuring the driver is in
 	  <file:Documentation/networking/e100.txt>.
 
 	  To compile this driver as a module, choose M here. The module
@@ -1999,7 +2122,7 @@ config E1000
 	depends on PCI
 	---help---
 	  This driver supports Intel(R) PRO/1000 gigabit ethernet family of
-	  adapters.  For more information on how to identify your adapter, go 
+	  adapters.  For more information on how to identify your adapter, go
 	  to the Adapter & Driver ID Guide at:
 
 	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
@@ -2009,7 +2132,7 @@ config E1000
 
 	  <http://support.intel.com>
 
-	  More specific information on configuring the driver is in 
+	  More specific information on configuring the driver is in
 	  <file:Documentation/networking/e1000.txt>.
 
 	  To compile this driver as a module, choose M here. The module
@@ -2198,7 +2321,7 @@ config SKGE
 	  and related Gigabit Ethernet adapters. It is a new smaller driver
 	  with better performance and more complete ethtool support.
 
-	  It does not support the link failover and network management 
+	  It does not support the link failover and network management
 	  features that "portable" vendor supplied sk98lin driver does.
 
 	  This driver supports adapters based on the original Yukon chipset:
@@ -2464,6 +2587,177 @@ config S6GMAC
 	  To compile this driver as a module, choose M here. The module
 	  will be called s6gmac.
 
+config AG7240
+	tristate "Atheros AR7240 GigE"
+	depends on MACH_AR7240 || MACH_HORNET || \
+		MACH_AR724x || MACH_AR933x || MACH_AR934x
+	help
+	  This enables the building of Atheros AR7240 gigE driver module.
+
+config AR7240_PLC_FILTER
+    bool "Support power line filter"
+    depends on AG7240
+
+config FLOWMAC
+    tristate "Atheros Flowcontrol For GigE and Wifi"
+    help
+        This enables the building of Flow control between AG7100 and Wifi.
+
+config AR7240_S26_VLAN_IGMP
+	bool "Support vlan and igmp functions in AR7240-S26 switch"
+	depends on AG7240
+
+config AR7240_S27_VLAN_IGMP
+	bool "Support vlan and igmp functions in AR7240-S27 switch"
+
+config AR7240_S16_VLAN_IGMP
+	bool "Support vlan and igmp functions in AR7240-S16 switch"
+	depends on AG7240
+
+config ATHEROS_HEADER_EN
+	bool "Add two bytes atheros header before the ethernet packet."
+	depends on AG7240
+
+config AG7240_GE0_IS_CONNECTED
+	bool "port 0 is connected to a PHY"
+	depends on AG7240
+
+choice
+	prompt "port 0 interface"
+	depends on AG7240_GE0_IS_CONNECTED
+
+config AG7240_GE0_MII
+	bool "MII mode"
+
+config AG7240_GE0_GMII
+	bool "GMII mode"
+
+config AG7240_GE0_RGMII
+	bool "RGMII mode"
+
+endchoice
+
+choice
+	prompt "Phy or Switch used"
+	depends on AG7240_GE0_IS_CONNECTED
+
+config ATHRF1_PHY
+	bool "Atheros F1 GigE Phy"
+
+config AR7240_S26_PHY
+	bool "Atheros 7240 S26 internal Phy"
+
+config ATHRS27_PHY
+	bool "Atheros S27 Phy"
+
+config AR8021_PHY
+	bool "Atheros AR8021 Phy"
+config ATHRS16_PHY_CONNECT_GE0
+	bool "Atheros S16 Phy"
+endchoice
+
+config AG7240_GE1_IS_CONNECTED
+	bool "port 1 is connected to a PHY"
+	depends on AG7240
+
+choice
+	prompt "port 1 interface"
+	depends on AG7240_GE1_IS_CONNECTED
+
+config AG7240_GE1_MII
+	bool "MII mode"
+
+config AG7240_GE1_GMII
+	bool "GMII mode"
+
+config AG7240_GE1_RGMII
+	bool "RGMII mode"
+endchoice
+
+config GE1_EXTERNAL_PHY
+	bool "GE1 is connected to different PHY"
+	depends on AG7240_GE1_IS_CONNECTED
+
+choice
+	prompt "Phy or Switch used"
+	depends on GE1_EXTERNAL_PHY
+config ATHRS16_PHY
+    bool "Athrs S16 Phy"
+    depends on GE1_EXTERNAL_PHY
+endchoice
+
+config AG7240_QOS
+	bool "Enable MAC 0 QOS "
+	depends on AG7240
+
+config ATHRS_HW_NAT
+	bool "Enable MAC 0 Egress and Ingress NAT engine "
+	depends on AG7240
+
+config ATHRS_HW_ACL
+	bool "Enable MAC 0 Egress and Ingress ACL engine "
+	depends on AG7240
+
+config AG7100_LEN_PER_TX_DS
+	int "Len per tx descriptor"
+	default "1536"
+	depends on (REALTEK_PHY || ADM6996FC_PHY || ICPLUS_PHY) && AG7100
+
+config AG7100_LEN_PER_TX_DS
+	int "Len per tx descriptor"
+	default "512"
+	depends on !(REALTEK_PHY || ADM6996FC_PHY || ICPLUS_PHY) && AG7100
+
+config AG7100_MAC_LOCATION
+	hex "Memory location of MAC addresses (in flash)"
+	default "0xbfff1000"
+	help
+	  This is the physical address in memory that contains
+	  the MAC addresses for the board Ethernet interfaces.  They
+	  are stored sequentially in 6 byte groups, for the total number
+	  of interfaces supported on the board.
+	depends on AG7100
+
+config AG7240_LEN_PER_TX_DS
+	int "Len per tx descriptor"
+	default "1536"
+	depends on (REALTEK_PHY || ADM6996FC_PHY || ICPLUS_PHY) && AG7240
+
+config AG7240_LEN_PER_TX_DS
+	int "Len per tx descriptor"
+	default "512"
+	depends on !(REALTEK_PHY || ADM6996FC_PHY || ICPLUS_PHY) && AG7240
+
+config  AG7240_NUMBER_TX_PKTS
+        int "Number tx pkts for intf 0"
+        default "100"
+        depends on AG7240
+
+config  AG7240_NUMBER_RX_PKTS
+        int "Number rx pkts for intf 0"
+        default "252"
+        depends on AG7240
+
+config  AG7240_NUMBER_TX_PKTS_1
+        int "Number tx pkts for intf 1"
+        default "40"
+        depends on AG7240_GE1_IS_CONNECTED
+
+config  AG7240_NUMBER_RX_PKTS_1
+        int "Number rx pkts for intf 1"
+        default "252"
+        depends on AG7240_GE1_IS_CONNECTED
+
+config  AG7240_MAC_LOCATION
+	hex "Memory location of MAC addresses (in flash)"
+	default "0xbfff0000"
+	help
+	  This is the physical address in memory that contains
+	  the MAC addresses for the board Ethernet interfaces. They
+	  are stored sequentially in 6 byte groups, for the total number
+	  of interfaces supported on the board.
+	depends on AG7240
+
 endif # NETDEV_1000
 
 #
@@ -2609,7 +2903,7 @@ config IXGB
 
 	  <http://support.intel.com>
 
-	  More specific information on configuring the driver is in 
+	  More specific information on configuring the driver is in
 	  <file:Documentation/networking/ixgb.txt>.
 
 	  To compile this driver as a module, choose M here. The module
@@ -2619,8 +2913,8 @@ config S2IO
 	tristate "S2IO 10Gbe XFrame NIC"
 	depends on PCI
 	---help---
-	  This driver supports the 10Gbe XFrame NIC of S2IO. 
-	  More specific information on configuring the driver is in 
+	  This driver supports the 10Gbe XFrame NIC of S2IO.
+	  More specific information on configuring the driver is in
 	  <file:Documentation/networking/s2io.txt>.
 
 config VXGE
@@ -3064,9 +3358,9 @@ config PPPOE
 	  Support for PPP over Ethernet.
 
 	  This driver requires the latest version of pppd from the CVS
-	  repository at cvs.samba.org.  Alternatively, see the 
+	  repository at cvs.samba.org.  Alternatively, see the
 	  RoaringPenguin package (<http://www.roaringpenguin.com/pppoe>)
-	  which contains instruction on how to use this driver (under 
+	  which contains instruction on how to use this driver (under
 	  the heading "Kernel mode PPPoE").
 
 config PPPOATM

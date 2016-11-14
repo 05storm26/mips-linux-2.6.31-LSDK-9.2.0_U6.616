@@ -73,6 +73,46 @@ enum ip_conntrack_status {
 	/* Connection has fixed timeout. */
 	IPS_FIXED_TIMEOUT_BIT = 10,
 	IPS_FIXED_TIMEOUT = (1 << IPS_FIXED_TIMEOUT_BIT),
+
+#ifdef CONFIG_ATHRS_HW_NAT
+
+        /* Marked when a ct/nat help owns this pkt */
+        IPS_NAT_ALG_PKT_BIT = 11,
+        IPS_NAT_ALG_PKT = (1 << IPS_NAT_ALG_PKT_BIT),
+
+        /* Marked when the tuple is added to the h/w nat */
+        IPS_ATHR_HW_NAT_ADDED_BIT = 12,
+        IPS_ATHR_HW_NAT_ADDED = (1 << IPS_ATHR_HW_NAT_ADDED_BIT),
+
+        /* Marked when the tuple is added to the h/w nat for a UDP pkt*/
+        IPS_ATHR_HW_NAT_IS_UDP_BIT = 13,
+        IPS_ATHR_HW_NAT_IS_UDP = (1 << IPS_ATHR_HW_NAT_IS_UDP_BIT),
+
+        /* Marked when the tuple is added to the h/w nat for a UDP pkt*/
+        IPS_ATHR_HW_NAT_IS_ONLY_EGRESS_BIT = 14,
+        IPS_ATHR_HW_NAT_IS_ONLY_EGRESS = (1 << IPS_ATHR_HW_NAT_IS_ONLY_EGRESS_BIT),
+
+        /* Marked when the tuple is added to the h/w nat for a UDP pkt*/
+        IPS_ATHR_SW_NAT_SKIPPED_BIT = 15,
+        IPS_ATHR_SW_NAT_SKIPPED = (1 << IPS_ATHR_SW_NAT_SKIPPED_BIT),
+
+        /*
+         * Addded for nat frag table fast hash entry lookup
+         */
+
+	IPS_ATHR_HW_CT_INGRESS_BIT = 16,
+	IPS_ATHR_HW_CT_INGRESS = (1 << IPS_ATHR_HW_CT_INGRESS_BIT),
+
+	IPS_ATHR_HW_CT_EGRESS_BIT = 17,
+	IPS_ATHR_HW_CT_EGRESS = (1 << IPS_ATHR_HW_CT_EGRESS_BIT),
+
+	/*added for hw nat, mark ct when packet go through unsupported layer2 interface*/
+	IPS_ATHR_HW_SRC_NAT_L2NOSUPPORT_BIT = 18,
+	IPS_ATHR_HW_SRC_NAT_L2NOSUPPORT = (1 << IPS_ATHR_HW_SRC_NAT_L2NOSUPPORT_BIT),
+
+	IPS_ATHR_HW_DST_NAT_L2NOSUPPORT_BIT = 19,
+	IPS_ATHR_HW_DST_NAT_L2NOSUPPORT = (1 << IPS_ATHR_HW_DST_NAT_L2NOSUPPORT_BIT),
+#endif
 };
 
 #ifdef __KERNEL__

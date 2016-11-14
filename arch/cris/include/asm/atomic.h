@@ -1,4 +1,4 @@
-/* $Id: atomic.h,v 1.3 2001/07/25 16:15:19 bjornw Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/asm/atomic.h#1 $ */
 
 #ifndef __ASM_CRIS_ATOMIC__
 #define __ASM_CRIS_ATOMIC__

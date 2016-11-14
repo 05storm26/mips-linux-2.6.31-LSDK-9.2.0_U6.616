@@ -1,4 +1,4 @@
-/* $Id: isar.h,v 1.11.2.2 2004/01/12 22:52:27 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isar.h#1 $
  *
  * ISAR (Siemens PSB 7110) specific defines
  *

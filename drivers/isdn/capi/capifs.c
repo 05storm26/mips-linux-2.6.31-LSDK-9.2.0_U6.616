@@ -1,4 +1,4 @@
-/* $Id: capifs.c,v 1.1.2.3 2004/01/16 21:09:26 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/capi/capifs.c#1 $
  * 
  * Copyright 2000 by Carsten Paeth <calle@calle.de>
  *
@@ -25,7 +25,7 @@ MODULE_LICENSE("GPL");
 
 /* ------------------------------------------------------------------ */
 
-static char *revision = "$Revision: 1.1.2.3 $";
+static char *revision = "$Revision: #1 $";
 
 /* ------------------------------------------------------------------ */
 

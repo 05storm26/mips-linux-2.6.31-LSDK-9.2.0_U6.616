@@ -8,7 +8,7 @@
  *     last modfied: Mon Apr 11 16:09:21 2005
  *
  *   by /n/asic/design/tools/rdesc/src/rdes2c --outfile ser_defs.h ../../inst/ser/rtl/ser_regs.r
- *      id: $Id: ser_defs.h,v 1.10 2005/04/24 18:30:58 starvik Exp $
+ *      id: $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/arch-v32/arch/hwregs/ser_defs.h#1 $
  * Any changes here will be lost.
  *
  * -*- buffer-read-only: t -*-

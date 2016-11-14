@@ -1,4 +1,4 @@
-/* $Id: isdnl2.c,v 2.30.2.4 2004/02/11 13:21:34 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/isdnl2.c#1 $
  *
  * Author       Karsten Keil
  *              based on the teles driver from Jan den Ouden
@@ -19,7 +19,7 @@
 #include "hisax.h"
 #include "isdnl2.h"
 
-const char *l2_revision = "$Revision: 2.30.2.4 $";
+const char *l2_revision = "$Revision: #1 $";
 
 static void l2m_debug(struct FsmInst *fi, char *fmt, ...);
 

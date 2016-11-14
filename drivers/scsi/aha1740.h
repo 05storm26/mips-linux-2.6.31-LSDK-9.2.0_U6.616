@@ -1,6 +1,6 @@
 #ifndef _AHA1740_H
 
-/* $Id$
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/scsi/aha1740.h#1 $
  *
  * Header file for the adaptec 1740 driver for Linux
  *

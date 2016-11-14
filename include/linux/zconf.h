@@ -3,7 +3,7 @@
  * For conditions of distribution and use, see copyright notice in zlib.h 
  */
 
-/* @(#) $Id$ */
+/* @(#) $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/zconf.h#1 $ */
 
 #ifndef _ZCONF_H
 #define _ZCONF_H

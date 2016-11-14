@@ -1,4 +1,4 @@
-/* $Id: lmc_media.c,v 1.13 2000/04/11 05:25:26 asj Exp $ */
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/wan/lmc/lmc_media.c#1 $ */
 
 #include <linux/kernel.h>
 #include <linux/string.h>

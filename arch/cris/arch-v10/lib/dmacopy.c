@@ -1,4 +1,4 @@
-/* $Id: dmacopy.c,v 1.1 2001/12/17 13:59:27 bjornw Exp $ 
+/* $Id: //depot/sw/releases/9.5.1/linux/kernels/mips-linux-2.6.31/arch/cris/arch-v10/lib/dmacopy.c#1 $ 
  *
  * memcpy for large blocks, using memory-memory DMA channels 6 and 7 in Etrax
  */

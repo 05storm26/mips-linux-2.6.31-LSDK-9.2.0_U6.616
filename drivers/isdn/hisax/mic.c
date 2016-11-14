@@ -1,4 +1,4 @@
-/* $Id: mic.c,v 1.12.2.4 2004/01/13 23:48:39 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/mic.c#1 $
  *
  * low level stuff for mic cards
  *
@@ -16,7 +16,7 @@
 #include "hscx.h"
 #include "isdnl1.h"
 
-static const char *mic_revision = "$Revision: 1.12.2.4 $";
+static const char *mic_revision = "$Revision: #1 $";
 
 #define byteout(addr,val) outb(val,addr)
 #define bytein(addr) inb(addr)

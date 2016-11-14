@@ -1,4 +1,4 @@
-/* $Id: q931.c,v 1.12.2.3 2004/01/13 14:31:26 keil Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/hisax/q931.c#1 $
  *
  * code to decode ITU Q.931 call control messages
  *

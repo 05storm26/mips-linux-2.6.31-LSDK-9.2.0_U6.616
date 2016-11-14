@@ -60,14 +60,30 @@ void *module_alloc(unsigned long size)
 #else
 	if (size == 0)
 		return NULL;
+#ifndef CONFIG_INSMOD_KSEG0
 	return vmalloc(size);
+#else
+	return (void *)alloc_pages_exact((size_t) size, GFP_KERNEL);
+#endif
 #endif
 }
 
 /* Free memory returned from module_alloc */
 void module_free(struct module *mod, void *module_region)
 {
+#ifndef CONFIG_INSMOD_KSEG0
 	vfree(module_region);
+#else
+	unsigned long size;
+	if(mod->module_core == module_region) {
+		size = (unsigned long)mod->core_size;
+		free_pages_exact((void *)module_region, (size_t)size);
+	}
+	else if(mod->module_init == module_region) {
+		size = (unsigned long)mod->init_size;
+		free_pages_exact((void *)module_region, (size_t)size);
+	}
+#endif
 }
 
 int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,

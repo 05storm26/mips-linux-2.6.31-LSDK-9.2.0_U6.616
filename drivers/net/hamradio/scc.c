@@ -1,4 +1,4 @@
-#define RCS_ID "$Id: scc.c,v 1.75 1998/11/04 15:15:01 jreuter Exp jreuter $"
+#define RCS_ID "$Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/net/hamradio/scc.c#1 $"
 
 #define VERSION "3.0"
 

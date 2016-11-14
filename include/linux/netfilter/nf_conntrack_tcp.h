@@ -67,6 +67,10 @@ struct ip_ct_tcp
 	u_int32_t	last_ack;	/* Last sequence number seen in opposite dir */
 	u_int32_t	last_end;	/* Last seq + len */
 	u_int16_t	last_win;	/* Last window advertisement seen in dir */
+	u_int32_t	insert_len;	/* How many bytes of spilth we have inserted, by lsz 081212 */
+	u_int32_t	harmony_end;/* when pkt coming to harmony hook, the ip_ct_tcp_state struct above
+										has been updated with current pkt, but we need last pkt seq+len.
+																			lsz 090701 */
 };
 
 #endif /* __KERNEL__ */

@@ -652,12 +652,14 @@ static int pppoe_connect(struct socket *sock, struct sockaddr *uservaddr,
 	/* Delete the old binding */
 	if (stage_session(po->pppoe_pa.sid)) {
 		pppox_unbind_sock(sk);
+		pn = pppoe_pernet(sock_net(sk));
+		delete_item(pn, po->pppoe_pa.sid,
+			    po->pppoe_pa.remote, po->pppoe_ifindex);
 		if (po->pppoe_dev) {
-			pn = pppoe_pernet(dev_net(po->pppoe_dev));
-			delete_item(pn, po->pppoe_pa.sid,
-				po->pppoe_pa.remote, po->pppoe_ifindex);
 			dev_put(po->pppoe_dev);
+			po->pppoe_dev = NULL;
 		}
+
 		memset(sk_pppox(po) + 1, 0,
 		       sizeof(struct pppox_sock) - sizeof(struct sock));
 		sk->sk_state = PPPOX_NONE;

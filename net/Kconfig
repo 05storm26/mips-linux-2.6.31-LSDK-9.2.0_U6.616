@@ -59,6 +59,15 @@ source "net/netlabel/Kconfig"
 
 endif # if INET
 
+config MAPPING
+       bool "IVI(test only)"
+       ---help---
+          This option enables the IVI function of the kernel.
+          It may introduce unstable factors to your system.
+          Please use mroute and mroute6 programs for configuration.
+          Recommended to read detailed information, available from
+          <http://www.ipivi.org>
+
 config NETWORK_SECMARK
 	bool "Security Marking"
 	help

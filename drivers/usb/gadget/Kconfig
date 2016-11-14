@@ -96,6 +96,24 @@ config USB_GADGET_VBUS_DRAW
 	   This value will be used except for system-specific gadget
 	   drivers that have more specific information.
 
+
+config USB_AR9130_OTG
+	bool "USB OTG Support for AR9130"
+	depends on USB_GADGET_AR9130 && USB_OTG
+	default y
+	help
+	  if you say Y here, the OTG functionality of AR9130 will be enabled and
+	  used along with the Host/Gadget Implementation
+
+
+config USB_ATH_OTG
+	bool "USB OTG Support for Atheros"
+	depends on USB_GADGET_ATH && USB_OTG
+	default y
+	help
+	  if you say Y here, the OTG functionality of Atheros will be enabled and
+	  used along with the Host/Gadget Implementation
+
 config	USB_GADGET_SELECTED
 	boolean
 
@@ -495,6 +513,41 @@ config USB_LANGWELL
 	default USB_GADGET
 	select USB_GADGET_SELECTED
 
+config USB_GADGET_AR9130
+	boolean "AR9130"
+	depends on MACH_AR7100 || MACH_AR7240
+	select USB_GADGET_DUALSPEED
+	help
+	   AR9130 is an embedded USB peripheral controller which
+	   supports both full and high speed USB 2.0 data transfers.
+
+	   Say "y" to link the driver statically, or "m" to build a
+	   dynamically linked module called "ar9130_udc" and force all
+	   gadget drivers to also be dynamically linked.
+
+config USB_AR9130
+	tristate
+	depends on USB_GADGET_AR9130
+	default USB_GADGET
+	select USB_GADGET_SELECTED
+
+config USB_GADGET_ATH
+	boolean "Atheros USB Gadget support"
+	depends on MACH_AR724x || MACH_AR933x || MACH_AR934x || MACH_QCA955x || MACH_HORNET
+	select USB_GADGET_DUALSPEED
+	help
+	   Atheros embedded USB peripheral controller which
+	   supports both full and high speed USB 2.0 data transfers.
+
+	   Say "y" to link the driver statically, or "m" to build a
+	   dynamically linked module called "ath_udc" and force all
+	   gadget drivers to also be dynamically linked.
+
+config USB_ATH
+	tristate
+	depends on USB_GADGET_ATH
+	default USB_GADGET
+	select USB_GADGET_SELECTED
 
 #
 # LAST -- dummy/emulated controller
@@ -510,11 +563,11 @@ config USB_GADGET_DUMMY_HCD
 	  side is the master; the gadget side is the slave.  Gadget drivers
 	  can be high, full, or low speed; and they have access to endpoints
 	  like those from NET2280, PXA2xx, or SA1100 hardware.
-	  
+
 	  This may help in some stages of creating a driver to embed in a
 	  Linux device, since it lets you debug several parts of the gadget
 	  driver without its hardware or drivers being involved.
-	  
+
 	  Since such a gadget side driver needs to interoperate with a host
 	  side Linux-USB device driver, this may help to debug both sides
 	  of a USB protocol stack.
@@ -616,13 +669,23 @@ config USB_AUDIO
 	  Say "y" to link the driver statically, or "m" to build a
 	  dynamically linked module called "g_audio".
 
+config AOW_USB_SUPPORT
+	bool "Audio over Wireless USB support"
+	depends on USB_AUDIO && HAVE_AOW_PLATFORM_SUPPORT
+	default n
+	help
+	  If you say "y" here, the Audio Gadget Driver (CONFIG_USB_AUDIO) is
+	  modified to support Atheros Audio over Wireless (AoW) functionality.
+	  AoW is available only for a few select platforms. Consult AoW
+	  documentation for more details.
+
 config USB_ETH
 	tristate "Ethernet Gadget (with CDC Ethernet support)"
 	depends on NET
 	help
 	  This driver implements Ethernet style communication, in either
 	  of two ways:
-	  
+
 	   - The "Communication Device Class" (CDC) Ethernet Control Model.
 	     That protocol is often avoided with pure Ethernet adapters, in
 	     favor of simpler vendor-specific hardware, but is widely
@@ -658,7 +721,7 @@ config USB_ETH_RNDIS
 	   If you say "y" here, the Ethernet gadget driver will try to provide
 	   a second device configuration, supporting RNDIS to talk to such
 	   Microsoft USB hosts.
-	   
+
 	   To make MS-Windows work with this, use Documentation/usb/linux.inf
 	   as the "driver info file".  For versions of MS-Windows older than
 	   XP, you'll need to download drivers from Microsoft's website; a URL

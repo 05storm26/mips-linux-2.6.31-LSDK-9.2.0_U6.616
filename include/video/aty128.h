@@ -1,4 +1,4 @@
-/*  $Id: aty128.h,v 1.1 1999/10/12 11:00:40 geert Exp $
+/*  $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/video/aty128.h#1 $
  *  linux/drivers/video/aty128.h
  *  Register definitions for ATI Rage128 boards
  *

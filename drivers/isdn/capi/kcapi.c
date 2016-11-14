@@ -1,4 +1,4 @@
-/* $Id: kcapi.c,v 1.1.2.8 2004/03/26 19:57:20 armin Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/drivers/isdn/capi/kcapi.c#1 $
  * 
  * Kernel CAPI 2.0 Module
  * 
@@ -34,7 +34,7 @@
 #endif
 #include <linux/mutex.h>
 
-static char *revision = "$Revision: 1.1.2.8 $";
+static char *revision = "$Revision: #1 $";
 
 /* ------------------------------------------------------------- */
 

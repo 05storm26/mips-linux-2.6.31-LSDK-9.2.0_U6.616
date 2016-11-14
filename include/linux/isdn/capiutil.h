@@ -1,4 +1,4 @@
-/* $Id: capiutil.h,v 1.5.6.2 2001/09/23 22:24:33 kai Exp $
+/* $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/include/linux/isdn/capiutil.h#1 $
  *
  * CAPI 2.0 defines & types
  *

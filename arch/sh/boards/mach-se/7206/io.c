@@ -1,4 +1,4 @@
-/* $Id: io.c,v 1.5 2004/02/22 23:08:43 kkojima Exp $
+/* $Id: //depot/sw/releases/9.5.1/linux/kernels/mips-linux-2.6.31/arch/sh/boards/mach-se/7206/io.c#1 $
  *
  * linux/arch/sh/boards/se/7206/io.c
  *

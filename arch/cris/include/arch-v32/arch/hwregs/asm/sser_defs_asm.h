@@ -8,7 +8,7 @@
  *     last modfied: Mon Apr 11 16:09:48 2005
  *
  *   by /n/asic/design/tools/rdesc/src/rdes2c -asm --outfile asm/sser_defs_asm.h ../../inst/syncser/rtl/sser_regs.r
- *      id: $Id: sser_defs_asm.h,v 1.1 2005/04/24 18:31:04 starvik Exp $
+ *      id: $Id: //depot/sw/releases/9.5/linux/kernels/mips-linux-2.6.31/arch/cris/include/arch-v32/arch/hwregs/asm/sser_defs_asm.h#1 $
  * Any changes here will be lost.
  *
  * -*- buffer-read-only: t -*-
